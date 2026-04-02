@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TextDB Pro - 在线文本/文件分享</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0f11;--card:#1a1a1f;--card-hover:#222228;--border:#2a2a30;--text:#e8e8ec;--text-muted:#888;--primary:#6c5ce7;--primary-light:#a29bfe;--primary-glow:rgba(108,92,231,0.15);--accent:#00cec9;--danger:#e17055;--success:#00b894;--radius:12px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"PingFang SC",sans-serif;min-height:100vh;line-height:1.6}
+.container{max-width:720px;margin:0 auto;padding:20px}
+
+header{text-align:center;padding:40px 0 30px}
+.logo{font-size:2.5rem;margin-bottom:8px}
+h1{font-size:1.8rem;font-weight:700;background:linear-gradient(135deg,var(--primary-light),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.subtitle{color:var(--text-muted);font-size:0.9rem}
+
+.tabs{display:flex;gap:4px;background:var(--card);border-radius:var(--radius);padding:4px;margin-bottom:20px}
+.tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:500;color:var(--text-muted);transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--primary);color:#fff;box-shadow:0 2px 10px rgba(108,92,231,0.3)}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card-title{font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+textarea{width:100%;min-height:280px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:"SF Mono",Monaco,"Cascadia Code","Fira Code",monospace;font-size:14px;resize:vertical;outline:none;transition:border-color .2s}
+textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+textarea::placeholder{color:#555}
+
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--primary);background:var(--primary-glow)}
+.upload-zone .icon{font-size:2.5rem;margin-bottom:8px}
+.upload-zone p{color:var(--text-muted);font-size:0.9rem}
+.upload-zone .browse{color:var(--primary-light);text-decoration:underline;cursor:pointer}
+.file-info{display:none;margin-top:12px;padding:12px;background:var(--bg);border-radius:8px;font-size:0.85rem}
+.file-info.show{display:flex;align-items:center;gap:10px}
+.file-info .ficon{font-size:1.5rem}
+.file-info .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-info .fsize{color:var(--text-muted)}
+.file-info .remove{color:var(--danger);cursor:pointer;padding:4px 8px}
+
+.options{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;align-items:flex-end}
+.option{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.option label{font-size:0.8rem;color:var(--text-muted)}
+input[type="text"],input[type="password"],select{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.9rem;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+select option{background:var(--card);color:var(--text)}
+
+.btn{padding:12px 28px;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--primary),#7c6cf0);color:#fff;box-shadow:0 4px 15px rgba(108,92,231,0.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(108,92,231,0.4)}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--primary)}
+.btn-block{width:100%;justify-content:center}
+.actions{display:flex;gap:10px;margin-top:20px}
+
+.result{display:none;margin-top:20px;padding:20px;background:var(--bg);border:1px solid var(--success);border-radius:var(--radius);animation:fadeIn .3s}
+.result.show{display:block}
+.result .url-box{display:flex;gap:8px;margin-top:8px}
+.result .url-input{flex:1;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-family:monospace;font-size:0.9rem;user-select:all}
+.result .copy-btn{padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;white-space:nowrap;transition:all .2s}
+.result .copy-btn:hover{border-color:var(--primary);color:var(--primary-light)}
+
+.stats{display:flex;justify-content:center;gap:20px;padding:16px 0;margin-top:10px}
+.stat{text-align:center}
+.stat-num{font-size:1.4rem;font-weight:700;color:var(--primary-light)}
+.stat-label{font-size:0.75rem;color:var(--text-muted)}
+
+footer{text-align:center;padding:30px 0 20px;color:var(--text-muted);font-size:0.8rem}
+footer a{color:var(--primary-light);text-decoration:none}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:640px){
+    .container{padding:12px}
+    header{padding:24px 0 16px}
+    h1{font-size:1.4rem}
+    .options{flex-direction:column}
+    .actions{flex-direction:column}
+    textarea{min-height:200px;font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+    
+    <header>
+        <div class="logo">📋</div>
+        <h1>TextDB Pro</h1>
+        <p class="subtitle">在线文本 & 文件分享 · 安全快捷</p>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('text')">📝 文本</div>
+        <div class="tab" onclick="switchTab('file')">📎 文件</div>
+    </div>
+
+    <!-- Text Tab -->
+    <div id="tab-text">
+        <div class="card">
+            <div class="card-title">✏️ 输入内容</div>
+            <textarea id="content" placeholder="在此输入或粘贴文本内容..."></textarea>
+        </div>
+    </div>
+
+    <!-- File Tab -->
+    <div id="tab-file" style="display:none">
+        <div class="card">
+            <div class="card-title">📤 上传文件</div>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                <div class="icon">📁</div>
+                <p>拖拽文件到此处，或 <span class="browse">点击选择</span></p>
+                <p style="font-size:0.8rem;color:#555;margin-top:4px">支持任意类型文件 · 最大 50MB</p>
+            </div>
+            <input type="file" id="fileInput" style="display:none" onchange="handleFile(this.files[0])">
+            <div class="file-info" id="fileInfo">
+                <span class="ficon" id="fileIcon">📎</span>
+                <span class="fname" id="fileName"></span>
+                <span class="fsize" id="fileSize"></span>
+                <span class="remove" onclick="removeFile()">✕</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Options -->
+    <div class="card">
+        <div class="card-title">⚙️ 选项</div>
+        <div class="options">
+            <div class="option">
+                <label>⏱ 过期时间</label>
+                <select id="ttl">
+                    <option value="never">永不过期</option>
+                    <option value="10m">10 分钟</option>
+                    <option value="30m">30 分钟</option>
+                    <option value="1h">1 小时</option>
+                    <option value="6h">6 小时</option>
+                    <option value="1d">1 天</option>
+                    <option value="7d">7 天</option>
+                    <option value="30d">30 天</option>
+                </select>
+            </div>
+            <div class="option">
+                <label>🔑 查看密码 (可选)</label>
+                <input type="password" id="password" placeholder="留空则公开">
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary btn-block" onclick="submit()">🚀 创建分享链接</button>
+        </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result" id="result">
+        <div style="color:var(--success);font-weight:600">✅ 创建成功！</div>
+        <div class="url-box">
+            <input class="url-input" id="resultUrl" readonly>
+            <button class="copy-btn" onclick="copyUrl()">📋 复制</button>
+        </div>
+        <div id="resultExtra" style="margin-top:8px;font-size:0.85rem;color:var(--text-muted)"></div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-num" id="totalCount">-</div>
+            <div class="stat-label">已存储</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num" id="totalViews">-</div>
+            <div class="stat-label">总浏览</div>
+        </div>
+    </div>
+
+    <footer>
+        TextDB Pro · 安全可靠的在线分享工具<br>
+        <a href="/api/docs">API 文档</a>
+    </footer>
+</div>
+
+<script>
+let currentTab = 'text';
+let selectedFile = null;
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (i === 0 && tab === 'text') || (i === 1 && tab === 'file')));
+    document.getElementById('tab-text').style.display = tab === 'text' ? '' : 'none';
+    document.getElementById('tab-file').style.display = tab === 'file' ? '' : 'none';
+}
+
+// Drag & Drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+function handleFile(file) {
+    if (!file) return;
+    selectedFile = file;
+    const ext = file.name.split('.').pop().toLowerCase();
+    const icons = {pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',zip:'🗜️',rar:'🗜️',mp3:'🎵',mp4:'🎬',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',txt:'📄',py:'🐍',js:'📜',html:'🌐'};
+    document.getElementById('fileIcon').textContent = icons[ext] || '📎';
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatSize(file.size);
+    document.getElementById('fileInfo').classList.add('show');
+}
+
+function removeFile() {
+    selectedFile = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileInfo').classList.remove('show');
+}
+
+function formatSize(b) {
+    for (let u of ['B','KB','MB','GB']) { if (b < 1024) return b.toFixed(1)+' '+u; b /= 1024; }
+    return b.toFixed(1)+' TB';
+}
+
+async function submit() {
+    const ttl = document.getElementById('ttl').value;
+    const password = document.getElementById('password').value;
+    
+    if (currentTab === 'text') {
+        const content = document.getElementById('content').value.trim();
+        if (!content) { alert('请输入内容'); return; }
+        
+        const fd = new FormData();
+        fd.append('content', content);
+        fd.append('ttl', ttl);
+        if (password) fd.append('password', password);
+        
+        const r = await fetch('/api/create', {method:'POST', body: fd});
+        const d = await r.json();
+        if (d.success) showResult(d);
+        else alert(d.error || '创建失败');
+    } else {
+        if (!selectedFile) { alert('请选择文件'); return; }
+        
+        const fd = new FormData();
+        fd.append('file', selectedFile);
+        fd.append('ttl', ttl);
+        if (password) fd.append('password', password);
+        
+        const r = await fetch('/api/upload', {method:'POST', body: fd});
+        const d = await r.json();
+        if (d.success) showResult(d);
+        else alert(d.error || '上传失败');
+    }
+}
+
+function showResult(d) {
+    const url = location.origin + '/' + d.id;
+    document.getElementById('resultUrl').value = url;
+    document.getElementById('result').classList.add('show');
+    let extra = '';
+    if (d.ttl) extra += '⏱ 过期时间: ' + d.ttl;
+    if (d.has_password) extra += ' 🔒 已设置密码保护';
+    document.getElementById('resultExtra').textContent = extra;
+    document.getElementById('result').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function copyUrl() {
+    const input = document.getElementById('resultUrl');
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✅ 已复制';
+        setTimeout(() => btn.textContent = '📋 复制', 1500);
+    });
+}
+
+// Load stats
+fetch('/api/stats').then(r=>r.json()).then(d => {
+    document.getElementById('totalCount').textContent = d.total;
+    document.getElementById('totalViews').textContent = d.views;
+});
+</script>
+</body>
+</html>

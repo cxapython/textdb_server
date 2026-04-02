@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API 文档 - TextDB Pro</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f0f11;color:#e8e8ec;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:40px 20px;line-height:1.7}
+.container{max-width:800px;margin:0 auto}
+h1{font-size:1.6rem;margin-bottom:8px;background:linear-gradient(135deg,#a29bfe,#00cec9);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+a{color:#a29bfe;text-decoration:none}
+.back{display:inline-block;margin-bottom:20px;font-size:0.9rem}
+.endpoint{background:#1a1a1f;border:1px solid #2a2a30;border-radius:12px;padding:20px;margin-bottom:16px}
+.method{display:inline-block;padding:4px 10px;border-radius:4px;font-size:0.8rem;font-weight:700;margin-right:8px}
+.method.post{background:#00b894;color:#000}
+.method.get{background:#0984e3;color:#fff}
+.path{font-family:monospace;font-size:0.95rem}
+pre{background:#0f0f11;border:1px solid #2a2a30;border-radius:8px;padding:16px;margin-top:8px;overflow-x:auto;font-size:0.85rem}
+code{font-family:"SF Mono",Monaco,monospace;font-size:0.85rem}
+.desc{color:#888;font-size:0.9rem;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="container">
+    <a href="/" class="back">← 返回首页</a>
+    <h1>📡 API 文档</h1>
+    <p class="desc">TextDB Pro 提供简洁的 REST API，方便程序化操作</p>
+
+    <div class="endpoint">
+        <span class="method post">POST</span><span class="path">/api/create</span>
+        <p class="desc">创建文本分享</p>
+        <pre>curl -X POST http://YOUR_HOST/api/create \\
+  -F "content=Hello World" \\
+  -F "ttl=1h" \\
+  -F "password=optional_pwd"</pre>
+        <pre>// Response
+{"success": true, "id": "a1b2c3d4", "url": "http://YOUR_HOST/a1b2c3d4"}</pre>
+    </div>
+
+    <div class="endpoint">
+        <span class="method post">POST</span><span class="path">/api/upload</span>
+        <p class="desc">上传文件 (最大 50MB)</p>
+        <pre>curl -X POST http://YOUR_HOST/api/upload \\
+  -F "file=@/path/to/file" \\
+  -F "ttl=1d" \\
+  -F "password=optional_pwd"</pre>
+    </div>
+
+    <div class="endpoint">
+        <span class="method get">GET</span><span class="path">/api/raw/{id}</span>
+        <p class="desc">获取文本原始内容（需带 ?pwd=xxx 如果有密码）</p>
+    </div>
+
+    <div class="endpoint">
+        <span class="method get">GET</span><span class="path">/api/file/{id}</span>
+        <p class="desc">下载文件（可选 ?t=download 触发浏览器下载）</p>
+    </div>
+
+    <div class="endpoint">
+        <span class="method get">GET</span><span class="path">/api/stats</span>
+        <p class="desc">获取统计信息</p>
+        <pre>{"total": 42, "views": 128}</pre>
+    </div>
+
+    <div class="endpoint">
+        <span class="method post">POST</span><span class="path">/api/unlock/{id}</span>
+        <p class="desc">验证密码获取访问令牌</p>
+        <pre>{"password": "xxx"} → {"success": true}</pre>
+    </div>
+</div>
+</body>
+</html>
