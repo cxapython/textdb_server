@@ -58,1127 +58,823 @@ def hash_password(password):
 
 # 首页模板（简化版）
 HOME_TEMPLATE = """<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<title>TextDB - 在线文本与文件存储</title>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TextDB - 在线文本与文件分享</title>
 <style>
-    /* 手机端适配 */
-    @media (max-width: 768px) {
-/* ========== iPhone 优化 ========== */
-@media only screen and (max-width: 430px) {
-/* ========== 基础样式（移动优先） ========== */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
+* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f8fafc;
+    color: #334155;
     line-height: 1.6;
 }
-
-.container {
-    width: 100%;
-    max-width: 100%;
+a { text-decoration: none; color: inherit; }
+.nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #e2e8f0;
+}
+.nav-inner {
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 15px 12px;
+    padding: 0 20px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
-
-/* 超小屏手机（iPhone SE/mini 等） */
-@media only screen and (max-width: 375px) {
-    .container { padding: 12px 10px; }
-    .header h1 { font-size: 1.6em; }
-    .header p { font-size: 0.8em; }
-    .tab { padding: 12px; font-size: 13px; }
-    .content { padding: 15px 12px; }
-    textarea { min-height: 150px; font-size: 15px; }
-    .btn { padding: 14px; font-size: 15px; height: 48px; }
+.nav-logo {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-
-/* 小屏手机（iPhone 12/13/14/15/16/17 标准版） */
-@media only screen and (min-width: 376px) and (max-width: 430px) {
-    .container { padding: 15px 12px; }
-    .header h1 { font-size: 1.8em; }
-    .header p { font-size: 0.85em; }
-    .tab { padding: 14px; font-size: 14px; }
-    .content { padding: 18px 15px; }
-    textarea { min-height: 180px; font-size: 16px; }
-    .btn { padding: 16px; font-size: 16px; height: 52px; }
+.nav-links { display: flex; gap: 32px; }
+.nav-links a {
+    font-size: 0.95rem;
+    color: #64748b;
+    font-weight: 500;
+    transition: color 0.2s;
 }
-
-/* 大屏手机（iPhone Pro Max / Android 大屏） */
-@media only screen and (min-width: 431px) and (max-width: 767px) {
-    .container { padding: 20px 15px; }
-    .header h1 { font-size: 2em; }
-    .header p { font-size: 0.9em; }
-    .row { grid-template-columns: 1fr 1fr; gap: 15px; }
-    .tab { padding: 16px; font-size: 15px; }
-    .content { padding: 25px 20px; }
+.nav-links a:hover { color: #3b82f6; }
+.nav-mobile-btn { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
+.hero {
+    text-align: center;
+    padding: 60px 20px 40px;
+    background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
 }
-
-/* 平板竖屏（iPad mini, iPad Air 竖屏） */
-@media only screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
-    .container { max-width: 90%; padding: 30px 20px; }
-    .header h1 { font-size: 2.2em; }
-    .row { grid-template-columns: 1fr 1fr; gap: 25px; }
-    .tab { padding: 18px; font-size: 16px; }
-    .content { padding: 35px 30px; }
-    textarea { min-height: 280px; }
+.hero h1 { font-size: 2.4rem; color: #1e293b; margin-bottom: 10px; }
+.hero p { font-size: 1.1rem; color: #64748b; max-width: 500px; margin: 0 auto 30px; }
+.main-card {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    overflow: hidden;
 }
-
-/* 平板横屏（iPad 横屏） */
-@media only screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
-    .container { max-width: 85%; padding: 25px 20px; }
-    .header h1 { font-size: 2em; }
-    .row { grid-template-columns: 1fr 1fr; gap: 20px; }
-    .content { padding: 30px; }
+.tabs { display: flex; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.tab {
+    flex: 1;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 500;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    font-size: 0.95rem;
+    transition: all 0.2s;
 }
-
-/* 小桌面（笔记本 13-15寸） */
-@media only screen and (min-width: 1025px) and (max-width: 1440px) {
-    .container { max-width: 900px; padding: 40px 30px; }
-    .header h1 { font-size: 2.5em; }
-    .row { grid-template-columns: 1fr 1fr; gap: 25px; }
-    .content { padding: 40px; }
+.tab.active { color: #3b82f6; background: #fff; box-shadow: inset 0 -2px 0 #3b82f6; }
+.tab-content { display: none; padding: 24px; }
+.tab-content.active { display: block; }
+textarea {
+    width: 100%;
+    min-height: 260px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
 }
-
-/* 大桌面（外接显示器 24寸+） */
-@media only screen and (min-width: 1441px) {
-    .container { max-width: 1000px; padding: 50px 40px; }
-    .header h1 { font-size: 3em; }
-    .header p { font-size: 1.1em; }
-    .card { box-shadow: 0 25px 80px rgba(0,0,0,0.35); }
-    .row { grid-template-columns: 1fr 1fr; gap: 30px; }
-    .content { padding: 45px; }
-    textarea { min-height: 350px; font-size: 15px; }
+textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.08); }
+.upload-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #64748b;
 }
-
-/* 超宽屏（带鱼屏 21:9） */
-@media only screen and (min-width: 1920px) {
-    .container { max-width: 1200px; }
-    .header h1 { font-size: 3.5em; }
+.upload-zone:hover { border-color: #3b82f6; background: #f8fafc; }
+.file-info {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    align-items: center;
+    gap: 10px;
 }
-
-/* ========== 特殊设备适配 ========== */
-
-/* 折叠屏手机展开 */
-@media only screen and (min-width: 700px) and (max-width: 900px) and (min-height: 1000px) {
-    .container { max-width: 95%; }
-    .row { grid-template-columns: 1fr 1fr; }
+.file-info.show { display: flex; }
+.options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 16px;
 }
-
-/* 横屏手机 */
-@media only screen and (max-height: 500px) and (orientation: landscape) {
-    .header { margin-bottom: 20px; }
-    .header h1 { font-size: 1.5em; }
-    textarea { min-height: 100px; }
-    .tabs { flex-direction: row; }
-    .tab { padding: 10px 15px; font-size: 13px; }
+.option label {
+    display: block;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 6px;
+    font-weight: 500;
 }
-
-/* ========== iOS 特殊优化 ========== */
-@supports (-webkit-touch-callout: none) {
-    @media screen and (max-width: 430px) {
-        input, select, textarea {
-            font-size: 16px !important;
-            -webkit-appearance: none;
-            border-radius: 10px;
-        }
-        .btn {
-            -webkit-tap-highlight-color: transparent;
-        }
-    }
+input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    background: #fff;
 }
-
-/* ========== Android 优化 ========== */
-@media screen and (-webkit-min-device-pixel-ratio: 2) and (max-width: 430px) {
-    .btn, input, select, textarea {
-        transform: translateZ(0);
-    }
+input:focus, select:focus { border-color: #3b82f6; }
+.btn-primary {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
 }
-
-/* ========== 打印样式 ========== */
-@media print {
-    body {
-        background: white !important;
-        -webkit-print-color-adjust: exact;
-    }
-    .card {
-        box-shadow: none;
-        border: 1px solid #ddd;
-    }
-    .header {
-        background: #667eea !important;
-        -webkit-print-color-adjust: exact;
-    }
-    .tabs, .btn, .file-upload {
-        display: none;
-    }
-    .content {
-        padding: 20px;
-    }
+.btn-primary:hover { background: #2563eb; }
+.btn-primary:active { transform: scale(0.99); }
+.result {
+    display: none;
+    margin-top: 20px;
+    padding: 16px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
 }
-
-/* ========== 深色模式（系统级） ========== */
-@media (prefers-color-scheme: dark) {
-    @media only screen and (min-width: 1025px) {
-        /* 桌面端深色模式 */
-    }
+.result.show { display: block; }
+.result-url {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
 }
-
-/* ========== 减少动画（无障碍） ========== */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+.result-url input {
+    flex: 1;
+    background: #fff;
 }
-
-/* ========== 高对比度模式 ========== */
-@media (prefers-contrast: high) {
-    .btn, .tab.active {
-        border: 2px solid currentColor;
-    }
+.result-url button {
+    padding: 10px 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
 }
-    /* iPhone 14/15/16/17 Pro Max 系列 */
-    body { 
-        padding: 15px 12px; 
-        -webkit-text-size-adjust: 100%;
-    }
-    .container { 
-        max-width: 100%; 
-        padding: 0;
-    }
-    .header { 
-        margin-bottom: 25px; 
-        padding: 0 5px;
-    }
-    .header h1 { 
-        font-size: 1.8em; 
-        margin-bottom: 8px;
-    }
-    .header p { 
-        font-size: 0.85em; 
-        line-height: 1.4;
-    }
-    .stats { 
-        font-size: 0.75em; 
-        padding: 6px 12px;
-        margin-top: 8px;
-    }
-    
-    /* 卡片优化 */
-    .card { 
-        border-radius: 12px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    
-    /* 标签页 */
-    .tabs { 
-        flex-direction: column;
-    }
-    .tab { 
-        padding: 14px; 
-        font-size: 15px;
-        border-bottom: 1px solid #e0e0e0;
-    }
-    .tab.active {
-        border-bottom: 3px solid #667eea;
-    }
-    
-    /* 内容区 */
-    .content { 
-        padding: 18px 15px; 
-    }
-    
-    /* 表单元素 */
-    .row { 
-        grid-template-columns: 1fr; 
-        gap: 12px; 
-    }
-    .form-group { 
-        margin-bottom: 15px; 
-    }
-    label { 
-        font-size: 14px; 
-        margin-bottom: 6px;
-    }
-    textarea { 
-        min-height: 180px; 
-        font-size: 16px; 
-        padding: 12px;
-        border-radius: 10px;
-        -webkit-appearance: none;
-    }
-    input, select { 
-        font-size: 16px; 
-        padding: 14px 12px;
-        height: 48px;
-        border-radius: 10px;
-        -webkit-appearance: none;
-    }
-    
-    /* 按钮 */
-    .btn { 
-        padding: 16px; 
-        font-size: 16px;
-        height: 52px;
-        border-radius: 10px;
-        font-weight: 600;
-        -webkit-tap-highlight-color: transparent;
-    }
-    
-    /* 文件上传 */
-    .file-upload { 
-        padding: 35px 20px; 
-        border-radius: 10px;
-    }
-    .file-upload p {
-        font-size: 14px;
-    }
-    
-    /* 结果提示 */
-    .result { 
-        padding: 18px; 
-        margin-top: 18px;
-    }
-    .result h3 {
-        font-size: 16px;
-    }
-    .result a {
-        font-size: 13px;
-        word-break: break-all;
-    }
-    
-    /* 查看页面 */
-    .code-container {
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    .code-header {
-        padding: 12px 15px;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-    .code-header span {
-        font-size: 13px;
-    }
-    .copy-btn {
-        padding: 8px 14px;
-        font-size: 13px;
-    }
-    pre code {
-        font-size: 12px;
-        line-height: 1.5;
-        padding: 15px;
-    }
-    
-    /* 密码页面 */
-    .password-form {
-        padding: 40px 20px;
-    }
-    .password-form input {
-        max-width: 100%;
-        font-size: 16px;
-    }
-    .password-form button {
-        width: 100%;
-        height: 50px;
-    }
-    
-    /* 文件下载页 */
-    .file-info {
-        padding: 40px 20px;
-    }
-    .file-info h2 {
-        font-size: 1.2em;
-        word-break: break-word;
-    }
-    .download-btn {
-        width: 100%;
-        padding: 16px;
-        font-size: 16px;
-        text-align: center;
-    }
+.result-url button:hover { border-color: #3b82f6; color: #3b82f6; }
+.qr-img { max-width: 160px; margin-top: 12px; border-radius: 8px; }
+.section { padding: 60px 20px; max-width: 1100px; margin: 0 auto; }
+.section-title { font-size: 1.6rem; color: #1e293b; text-align: center; margin-bottom: 8px; }
+.section-subtitle { text-align: center; color: #64748b; margin-bottom: 36px; font-size: 0.95rem; }
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
 }
-
-/* ========== iPad 优化 ========== */
-@media only screen and (min-width: 768px) and (max-width: 1024px) {
-    /* iPad Air/Pro 系列 */
-    body {
-        padding: 30px 20px;
-    }
-    .container {
-        max-width: 95%;
-    }
-    .header h1 {
-        font-size: 2.5em;
-    }
-    
-    /* 标签页横向但更大 */
-    .tab {
-        padding: 18px;
-        font-size: 17px;
-    }
-    
-    /* 内容区更宽松 */
-    .content {
-        padding: 35px;
-    }
-    
-    /* 两列布局但间距更大 */
-    .row {
-        gap: 25px;
-    }
-    
-    /* 更大的触摸区域 */
-    textarea {
-        min-height: 250px;
-        font-size: 16px;
-    }
-    input, select {
-        padding: 16px;
-        height: 52px;
-        font-size: 16px;
-    }
-    .btn {
-        padding: 18px;
-        font-size: 17px;
-        height: 56px;
-    }
-    
-    /* 代码区 */
-    pre code {
-        font-size: 14px;
-        padding: 20px;
-    }
+.feature-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    transition: box-shadow 0.2s, transform 0.2s;
 }
-
-/* ========== iOS Safari 特殊优化 ========== */
-@supports (-webkit-touch-callout: none) {
-    /* iOS 设备通用 */
-    input, textarea, select {
-        -webkit-appearance: none;
-        border-radius: 10px;
-    }
-    
-    /* 防止 iOS 缩放 */
-    @media screen and (max-width: 430px) {
-        input, select, textarea {
-            font-size: 16px !important;
-        }
-    }
-    
-    /* 平滑滚动 */
-    .card, pre {
-        -webkit-overflow-scrolling: touch;
-    }
-    
-    /* 禁用双击缩放 */
-    * {
-        touch-action: manipulation;
-    }
+.feature-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); transform: translateY(-2px); }
+.feature-icon { width: 40px; height: 40px; background: #eff6ff; color: #3b82f6; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 14px; }
+.feature-card h3 { font-size: 1.1rem; color: #1e293b; margin-bottom: 6px; }
+.feature-card p { font-size: 0.9rem; color: #64748b; }
+.steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; margin-top: 20px; }
+.step { text-align: center; max-width: 260px; }
+.step-num {
+    width: 36px; height: 36px;
+    background: #3b82f6; color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; margin: 0 auto 12px;
 }
-
-/* ========== 横屏模式 ========== */
-@media only screen and (max-width: 896px) and (orientation: landscape) {
-    /* iPhone 横屏 */
-    .header h1 {
-        font-size: 1.5em;
-    }
-    .tabs {
-        flex-direction: row;
-    }
-    .tab {
-        padding: 12px;
-        font-size: 14px;
-    }
-    textarea {
-        min-height: 120px;
-    }
+.step h4 { font-size: 1rem; color: #1e293b; margin-bottom: 4px; }
+.step p { font-size: 0.9rem; color: #64748b; }
+.faq-item { border-bottom: 1px solid #e2e8f0; padding: 18px 0; }
+.faq-item h4 { font-size: 1rem; color: #1e293b; margin-bottom: 6px; }
+.faq-item p { font-size: 0.9rem; color: #64748b; }
+footer {
+    border-top: 1px solid #e2e8f0;
+    padding: 40px 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    background: #fff;
 }
-        body { padding: 20px 10px; }
-        .container { max-width: 100%; }
-        .header h1 { font-size: 2em; }
-        .header p { font-size: 0.9em; }
-        .stats { font-size: 0.8em; padding: 8px 15px; }
-        .tabs { flex-direction: column; }
-        .tab { padding: 15px; font-size: 14px; }
-        .content { padding: 20px 15px; }
-        .row { grid-template-columns: 1fr; gap: 15px; }
-        textarea { min-height: 200px; font-size: 16px; }
-        input, select { font-size: 16px; padding: 15px; }
-        .btn { padding: 18px; font-size: 16px; }
-        .file-upload { padding: 30px 20px; }
-        .header { flex-direction: column; gap: 15px; padding: 20px; }
-        .lang-selector select { width: 100%; }
-        pre code { font-size: 13px; }
-        .code-header { flex-direction: column; gap: 10px; }
-        .password-form { padding: 40px 20px; }
-        .password-form input { max-width: 100%; }
-    }
-body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;margin:0;padding:40px 20px}
-.container{max-width:900px;margin:0 auto}
-.header{text-align:center;color:white;margin-bottom:40px}
-.header h1{font-size:3em;margin-bottom:10px}
-.card{background:white;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
-.tabs{display:flex;border-bottom:1px solid #e0e0e0}
-.tab{flex:1;padding:20px;text-align:center;cursor:pointer;background:#f8f9fa;border:none;font-size:16px}
-.tab.active{background:white;color:#667eea;border-bottom:3px solid #667eea}
-.content{padding:30px}
-.tab-content{display:none}
-.tab-content.active{display:block}
-textarea{width:100%;min-height:300px;padding:15px;border:2px solid #e0e0e0;border-radius:8px;font-family:monospace}
-.form-group{margin-bottom:20px}
-label{display:block;margin-bottom:8px;font-weight:500}
-input,select{width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.btn{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:15px;font-size:16px;border-radius:8px;cursor:pointer;width:100%}
-.file-upload{border:3px dashed #ccc;border-radius:8px;padding:40px;text-align:center;cursor:pointer}
-.file-upload input{display:none}
-.result{margin-top:20px;padding:20px;background:#f0f4ff;border-radius:8px;display:none}
-.result.show{display:block}
-.stats{background:rgba(255,255,255,0.1);padding:10px 20px;border-radius:20px;display:inline-block;margin-top:10px;color:white}
+@media (max-width: 768px) {
+    .nav-links { display: none; }
+    .nav-mobile-btn { display: block; }
+    .hero h1 { font-size: 1.8rem; }
+    .hero { padding: 40px 16px 30px; }
+    .options { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr; }
+    .section { padding: 40px 16px; }
+}
 </style>
 </head>
 <body>
-<div class="container">
-<div class="header"><h1>TextDB</h1><p>安全、简洁的在线文本与文件存储</p>
-<div class="stats">已存储 {{ stats.text_count }} 个文本 | {{ stats.file_count }} 个文件</div></div>
-<div class="card">
-<div class="tabs">
-<button class="tab active" onclick="switchTab('text')">文本存储</button>
-<button class="tab" onclick="switchTab('file')">文件上传</button>
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">📋 TextDB</a>
+        <div class="nav-links">
+            <a href="#features">功能</a>
+            <a href="#usage">使用</a>
+            <a href="#faq">FAQ</a>
+        </div>
+        <button class="nav-mobile-btn" onclick="document.getElementById('mobileMenu').classList.toggle('show')">☰</button>
+    </div>
+</nav>
+<div class="hero">
+    <h1>在线文本 & 文件分享</h1>
+    <p>极简的数据暂存和传送工具，无需登录，即开即用</p>
+    <div class="main-card">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('text')">📝 文本</button>
+            <button class="tab" onclick="switchTab('file')">📎 文件</button>
+        </div>
+        <div id="tab-text" class="tab-content active">
+            <textarea id="content" placeholder="在此输入或粘贴文本内容..."></textarea>
+        </div>
+        <div id="tab-file" class="tab-content">
+            <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+                <div style="font-size:2rem;margin-bottom:8px;">📁</div>
+                <p>拖拽文件到此处，或 <span style="color:#3b82f6;text-decoration:underline;">点击选择</span></p>
+                <p style="font-size:0.8rem;color:#94a3b8;margin-top:4px;">支持任意类型文件</p>
+            </div>
+            <input type="file" id="file-input" style="display:none" onchange="handleFile(this.files[0])">
+            <div class="file-info" id="fileInfo">
+                <span>📎</span>
+                <span id="fileName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                <span id="fileSize" style="color:#94a3b8;font-size:0.85rem;"></span>
+                <span onclick="removeFile()" style="color:#ef4444;cursor:pointer;font-size:0.85rem;">删除</span>
+            </div>
+        </div>
+        <div style="padding: 0 24px 24px;">
+            <div class="options">
+                <div class="option">
+                    <label>🔗 自定义链接（可选）</label>
+                    <input type="text" id="customKey" placeholder="留空则自动生成">
+                </div>
+                <div class="option">
+                    <label>⏱ 过期时间</label>
+                    <select id="ttl">
+                        <option value="">永不过期</option>
+                        <option value="1h">1 小时</option>
+                        <option value="1d">1 天</option>
+                        <option value="7d">7 天</option>
+                        <option value="30d">30 天</option>
+                    </select>
+                </div>
+                <div class="option">
+                    <label>🔑 访问密码（可选）</label>
+                    <input type="password" id="password" placeholder="不设密码直接访问">
+                </div>
+            </div>
+            <button class="btn-primary" onclick="submit()">🚀 创建分享链接</button>
+            <div class="result" id="result">
+                <div style="color:#16a34a;font-weight:600;margin-bottom:4px;">✅ 创建成功！</div>
+                <div class="result-url">
+                    <input id="resultUrl" readonly>
+                    <button onclick="copyUrl()">📋 复制</button>
+                </div>
+                <div id="resultExtra" style="margin-top:8px;font-size:0.85rem;color:#64748b;"></div>
+                <div style="text-align:center;">
+                    <img id="qrImg" class="qr-img" src="" alt="二维码">
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="content">
-<div id="text-tab" class="tab-content active">
-<div class="form-group"><label>文本内容</label><textarea id="content" placeholder="在此输入文本内容..."></textarea></div>
-<div class="row">
-<div class="form-group"><label>自定义链接（可选）</label><input type="text" id="text-key" placeholder="留空自动生成"></div>
-<div class="form-group"><label>访问密码（可选）</label><input type="password" id="text-password" placeholder="不设密码直接访问"></div>
-</div>
-<div class="form-group"><label>过期时间</label><select id="text-expires"><option value="">永不过期</option><option value="1h">1小时</option><option value="1d">1天</option><option value="7d">7天</option><option value="30d">30天</option></select></div>
-<button class="btn" onclick="submitText()">保存文本</button>
-</div>
-<div id="file-tab" class="tab-content">
-<div class="form-group"><label>选择文件</label><div class="file-upload" onclick="document.getElementById('file-input').click()"><input type="file" id="file-input" onchange="updateFileName()"><p id="file-name">点击选择文件（支持任意类型）</p></div></div>
-<div class="row">
-<div class="form-group"><label>自定义链接（可选）</label><input type="text" id="file-key" placeholder="留空自动生成"></div>
-<div class="form-group"><label>访问密码（可选）</label><input type="password" id="file-password" placeholder="不设密码直接访问"></div>
-</div>
-<div class="form-group"><label>过期时间</label><select id="file-expires"><option value="">永不过期</option><option value="1h">1小时</option><option value="1d">1天</option><option value="7d">7天</option><option value="30d">30天</option></select></div>
-<button class="btn" onclick="submitFile()">上传文件</button>
-</div>
-<div id="result" class="result"><h3>✅ 保存成功！</h3><p>访问链接：<a id="result-url" href="#" target="_blank"></a></p><p id="result-password"></p><div id="qr-section" style="margin-top:20px;text-align:center;display:none;"><p style="margin-bottom:10px;">📱 手机扫码访问</p><img id="qr-img" style="max-width:200px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);" src="" alt="二维码"><p style="font-size:12px;color:#666;margin-top:8px;">长按识别二维码</p></div></div>
-</div></div></div>
+<section class="section" id="usage">
+    <h2 class="section-title">使用方法</h2>
+    <p class="section-subtitle">三步完成数据暂存与分享</p>
+    <div class="steps">
+        <div class="step">
+            <div class="step-num">1</div>
+            <h4>输入内容</h4>
+            <p>在文本框中输入内容，或拖拽上传任意文件</p>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <h4>设置选项</h4>
+            <p>选择过期时间、设置访问密码，或自定义链接地址</p>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <h4>复制链接</h4>
+            <p>一键生成专属链接，跨设备随时访问</p>
+        </div>
+    </div>
+</section>
+<section class="section" id="features" style="background:#fff;border-radius:24px 24px 0 0;margin-top:20px;">
+    <h2 class="section-title">核心优势</h2>
+    <p class="section-subtitle">为什么选择 TextDB</p>
+    <div class="features">
+        <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3>密码保护</h3>
+            <p>敏感信息可设置访问密码，防止被他人随意查看</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">⏱</div>
+            <h3>自动过期</h3>
+            <p>支持设置过期时间，到期自动清理，不留痕迹</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3>扫码访问</h3>
+            <p>生成链接的同时提供二维码，手机扫码即可查看</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">✏️</div>
+            <h3>在线编辑</h3>
+            <p>文本内容支持在线直接编辑和保存，实时更新</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📎</div>
+            <h3>文件分享</h3>
+            <p>不仅支持文本，任意类型文件均可快速分享</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>无需登录</h3>
+            <p>打开网页即用，无需注册账号，简单高效</p>
+        </div>
+    </div>
+</section>
+<section class="section">
+    <h2 class="section-title">使用建议</h2>
+    <p class="section-subtitle">为了更好地使用 TextDB，请参考以下建议</p>
+    <div class="features">
+        <div class="feature-card">
+            <div class="feature-icon" style="background:#fef2f2;color:#ef4444;">⚠️</div>
+            <h3>勿作永久存储</h3>
+            <p>TextDB 定位为临时数据中转，重要文件请保存到本地或专业网盘</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon" style="background:#fef2f2;color:#ef4444;">🔐</div>
+            <h3>敏感信息设密码</h3>
+            <p>传递账号密码等私密信息时，务必添加访问密码</p>
+        </div>
+    </div>
+</section>
+<section class="section" id="faq">
+    <h2 class="section-title">常见问题</h2>
+    <div class="faq-item">
+        <h4>Q: 数据会保存多久？</h4>
+        <p>A: 默认永久保存，但您可以设置 1小时到30天不等的过期时间。过期后内容将自动清理。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 最大支持多大的文件？</h4>
+        <p>A: 当前支持绝大多数常见文件类型，具体大小限制取决于服务器配置。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 忘记密码怎么办？</h4>
+        <p>A: 由于无需注册账号，如果您遗忘了访问密码，我们将无法为您找回，请妥善保管。</p>
+    </div>
+</section>
+<footer>
+    <p>TextDB · 安全可靠的在线分享工具</p>
+    <p style="margin-top:6px;">已存储 {{ stats.text_count }} 个文本 · {{ stats.file_count }} 个文件</p>
+</footer>
 <script>
-function switchTab(tab){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));event.target.classList.add('active');document.getElementById(tab+'-tab').classList.add('active');document.getElementById('result').classList.remove('show')}
-function updateFileName(){const input=document.getElementById('file-input');const name=document.getElementById('file-name');if(input.files.length>0)name.textContent=input.files[0].name}
-function submitText(){const content=document.getElementById('content').value;if(!content.trim()){alert('请输入文本内容');return}fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:content,key:document.getElementById('text-key').value,password:document.getElementById('text-password').value,expires:document.getElementById('text-expires').value})}).then(r=>r.json()).then(data=>{if(data.success)showResult(data.url,data.has_password,data.qr_code);else alert(data.error||'保存失败')})}
-function submitFile(){const input=document.getElementById('file-input');if(input.files.length===0){alert('请选择文件');return}const formData=new FormData();formData.append('file',input.files[0]);formData.append('key',document.getElementById('file-key').value);formData.append('password',document.getElementById('file-password').value);formData.append('expires',document.getElementById('file-expires').value);fetch('/api/upload',{method:'POST',body:formData}).then(r=>r.json()).then(data=>{if(data.success)showResult(data.url,data.has_password,data.qr_code);else alert(data.error||'上传失败')})}
-function showResult(url,hasPassword,qrCode){document.getElementById('result-url').textContent=url;document.getElementById('result-url').href=url;document.getElementById('result-password').textContent=hasPassword?'🔒 已设置密码，访问时需要输入密码':'';if(qrCode){document.getElementById('qr-img').src=qrCode;document.getElementById('qr-section').style.display='block'}else{document.getElementById('qr-section').style.display='none'}document.getElementById('result').classList.add('show')}
+let currentTab = 'text';
+let selectedFile = null;
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && tab === 'text') || (i === 1 && tab === 'file'));
+    });
+    document.getElementById('tab-text').classList.toggle('active', tab === 'text');
+    document.getElementById('tab-file').classList.toggle('active', tab === 'file');
+    document.getElementById('result').classList.remove('show');
+}
+const zone = document.querySelector('.upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = '#3b82f6'; zone.style.background = '#f8fafc'; });
+zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; zone.style.background = ''; });
+zone.addEventListener('drop', e => { e.preventDefault(); zone.style.borderColor = ''; zone.style.background = ''; if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+function handleFile(file) {
+    if (!file) return;
+    selectedFile = file;
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    document.getElementById('fileInfo').classList.add('show');
+}
+function removeFile() {
+    selectedFile = null;
+    document.getElementById('file-input').value = '';
+    document.getElementById('fileInfo').classList.remove('show');
+}
+async function submit() {
+    const ttl = document.getElementById('ttl').value;
+    const password = document.getElementById('password').value;
+    const customKey = document.getElementById('customKey').value.trim();
+    if (currentTab === 'text') {
+        const content = document.getElementById('content').value.trim();
+        if (!content) { alert('请输入内容'); return; }
+        const body = { content: content, key: customKey, expires: ttl, password: password };
+        const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const d = await r.json();
+        if (d.success) showResult(d);
+        else if (d.exists) {
+            if (confirm('该链接已存在内容，是否覆盖？')) {
+                body.overwrite = true;
+                const r2 = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const d2 = await r2.json();
+                if (d2.success) showResult(d2);
+                else alert(d2.error || '保存失败');
+            }
+        } else alert(d.error || '创建失败');
+    } else {
+        if (!selectedFile) { alert('请选择文件'); return; }
+        const fd = new FormData();
+        fd.append('file', selectedFile);
+        fd.append('key', customKey);
+        fd.append('expires', ttl);
+        fd.append('password', password);
+        const r = await fetch('/api/upload', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (d.success) showResult(d);
+        else alert(d.error || '上传失败');
+    }
+}
+function showResult(d) {
+    document.getElementById('resultUrl').value = d.url;
+    document.getElementById('result').classList.add('show');
+    let extra = '';
+    const ttl = document.getElementById('ttl');
+    if (ttl.value) extra += '⏱ 过期时间: ' + ttl.options[ttl.selectedIndex].text;
+    if (d.has_password) extra += ' 🔒 已设置密码保护';
+    if (document.getElementById('customKey').value.trim()) extra += ' 🔗 自定义链接';
+    document.getElementById('resultExtra').textContent = extra;
+    if (d.qr_code) { document.getElementById('qrImg').src = d.qr_code; document.getElementById('qrImg').style.display = 'inline-block'; }
+    else { document.getElementById('qrImg').style.display = 'none'; }
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function copyUrl() {
+    const input = document.getElementById('resultUrl');
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = document.querySelector('.result-url button');
+        btn.textContent = '✅ 已复制';
+        setTimeout(() => btn.textContent = '📋 复制', 1500);
+    });
+}
 </script>
-</body></html>"""
+</body>
+</html>"""
 
-# 带代码高亮的查看模板
 VIEW_TEMPLATE = """<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ title }} - TextDB</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
-    /* 手机端适配 */
-    @media (max-width: 768px) {
-/* ========== iPhone 优化 ========== */
-@media only screen and (max-width: 430px) {
-/* ========== 基础样式（移动优先） ========== */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
+* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f8fafc;
+    color: #334155;
     line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
-
-.container {
-    width: 100%;
-    max-width: 100%;
+a { text-decoration: none; color: inherit; }
+.nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #e2e8f0;
+}
+.nav-inner {
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 15px 12px;
+    padding: 0 20px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
-
-/* 超小屏手机（iPhone SE/mini 等） */
-@media only screen and (max-width: 375px) {
-    .container { padding: 12px 10px; }
-    .header h1 { font-size: 1.6em; }
-    .header p { font-size: 0.8em; }
-    .tab { padding: 12px; font-size: 13px; }
-    .content { padding: 15px 12px; }
-    textarea { min-height: 150px; font-size: 15px; }
-    .btn { padding: 14px; font-size: 15px; height: 48px; }
+.nav-logo { font-size: 1.3rem; font-weight: 700; color: #3b82f6; display: flex; align-items: center; gap: 8px; }
+.nav-back {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: background 0.2s;
 }
-
-/* 小屏手机（iPhone 12/13/14/15/16/17 标准版） */
-@media only screen and (min-width: 376px) and (max-width: 430px) {
-    .container { padding: 15px 12px; }
-    .header h1 { font-size: 1.8em; }
-    .header p { font-size: 0.85em; }
-    .tab { padding: 14px; font-size: 14px; }
-    .content { padding: 18px 15px; }
-    textarea { min-height: 180px; font-size: 16px; }
-    .btn { padding: 16px; font-size: 16px; height: 52px; }
+.nav-back:hover { background: #f1f5f9; color: #3b82f6; }
+.main { flex: 1; display: flex; flex-direction: column; }
+.container { max-width: 900px; margin: 0 auto; padding: 24px 20px; width: 100%; }
+.card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    overflow: hidden;
 }
-
-/* 大屏手机（iPhone Pro Max / Android 大屏） */
-@media only screen and (min-width: 431px) and (max-width: 767px) {
-    .container { padding: 20px 15px; }
-    .header h1 { font-size: 2em; }
-    .header p { font-size: 0.9em; }
-    .row { grid-template-columns: 1fr 1fr; gap: 15px; }
-    .tab { padding: 16px; font-size: 15px; }
-    .content { padding: 25px 20px; }
+.editor-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #fafafa;
 }
-
-/* 平板竖屏（iPad mini, iPad Air 竖屏） */
-@media only screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
-    .container { max-width: 90%; padding: 30px 20px; }
-    .header h1 { font-size: 2.2em; }
-    .row { grid-template-columns: 1fr 1fr; gap: 25px; }
-    .tab { padding: 18px; font-size: 16px; }
-    .content { padding: 35px 30px; }
-    textarea { min-height: 280px; }
+.editor-title { font-size: 1rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+.editor-meta { font-size: 0.85rem; color: #94a3b8; }
+.editor-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.editor-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
 }
-
-/* 平板横屏（iPad 横屏） */
-@media only screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
-    .container { max-width: 85%; padding: 25px 20px; }
-    .header h1 { font-size: 2em; }
-    .row { grid-template-columns: 1fr 1fr; gap: 20px; }
-    .content { padding: 30px; }
+.btn-save { background: #3b82f6; color: #fff; }
+.btn-save:hover { background: #2563eb; }
+.btn-copy { background: #f1f5f9; color: #334155; }
+.btn-copy:hover { background: #e2e8f0; }
+.editor-area {
+    padding: 20px;
+    min-height: calc(100vh - 200px);
 }
-
-/* 小桌面（笔记本 13-15寸） */
-@media only screen and (min-width: 1025px) and (max-width: 1440px) {
-    .container { max-width: 900px; padding: 40px 30px; }
-    .header h1 { font-size: 2.5em; }
-    .row { grid-template-columns: 1fr 1fr; gap: 25px; }
-    .content { padding: 40px; }
+.editor-area textarea {
+    width: 100%;
+    min-height: 60vh;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-family: "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    resize: vertical;
+    outline: none;
+    background: #fafafa;
+    color: #1e293b;
 }
-
-/* 大桌面（外接显示器 24寸+） */
-@media only screen and (min-width: 1441px) {
-    .container { max-width: 1000px; padding: 50px 40px; }
-    .header h1 { font-size: 3em; }
-    .header p { font-size: 1.1em; }
-    .card { box-shadow: 0 25px 80px rgba(0,0,0,0.35); }
-    .row { grid-template-columns: 1fr 1fr; gap: 30px; }
-    .content { padding: 45px; }
-    textarea { min-height: 350px; font-size: 15px; }
+.editor-area textarea:focus { border-color: #3b82f6; background: #fff; }
+.markdown-body {
+    padding: 24px;
+    line-height: 1.8;
+    color: #334155;
+    background: #fff;
 }
-
-/* 超宽屏（带鱼屏 21:9） */
-@media only screen and (min-width: 1920px) {
-    .container { max-width: 1200px; }
-    .header h1 { font-size: 3.5em; }
+.markdown-body h1, .markdown-body h2, .markdown-body h3,
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
+    margin-top: 24px; margin-bottom: 16px;
+    font-weight: 600; color: #1e293b;
 }
-
-/* ========== 特殊设备适配 ========== */
-
-/* 折叠屏手机展开 */
-@media only screen and (min-width: 700px) and (max-width: 900px) and (min-height: 1000px) {
-    .container { max-width: 95%; }
-    .row { grid-template-columns: 1fr 1fr; }
+.markdown-body h1 { font-size: 1.8em; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+.markdown-body h2 { font-size: 1.4em; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+.markdown-body p { margin-bottom: 16px; }
+.markdown-body ul, .markdown-body ol { padding-left: 2em; margin-bottom: 16px; }
+.markdown-body code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 85%; }
+.markdown-body pre { background: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; margin-bottom: 16px; }
+.markdown-body pre code { background: transparent; padding: 0; }
+.markdown-body blockquote { border-left: 4px solid #e2e8f0; padding-left: 16px; color: #64748b; margin-bottom: 16px; }
+.markdown-body a { color: #3b82f6; }
+.markdown-body img { max-width: 100%; }
+.file-card { text-align: center; padding: 60px 40px; }
+.file-icon { font-size: 4rem; margin-bottom: 16px; }
+.file-name { font-size: 1.3rem; color: #1e293b; margin-bottom: 8px; word-break: break-word; }
+.file-size { color: #64748b; margin-bottom: 24px; }
+.btn-download {
+    display: inline-block;
+    background: #3b82f6;
+    color: #fff;
+    padding: 14px 36px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: background 0.2s;
 }
-
-/* 横屏手机 */
-@media only screen and (max-height: 500px) and (orientation: landscape) {
-    .header { margin-bottom: 20px; }
-    .header h1 { font-size: 1.5em; }
-    textarea { min-height: 100px; }
-    .tabs { flex-direction: row; }
-    .tab { padding: 10px 15px; font-size: 13px; }
+.btn-download:hover { background: #2563eb; }
+.auth-card { max-width: 400px; margin: 80px auto; text-align: center; padding: 40px; }
+.auth-card h2 { font-size: 1.4rem; margin-bottom: 8px; color: #1e293b; }
+.auth-card p { color: #64748b; margin-bottom: 24px; font-size: 0.95rem; }
+.auth-card input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 16px;
+    margin-bottom: 16px;
+    outline: none;
 }
-
-/* ========== iOS 特殊优化 ========== */
-@supports (-webkit-touch-callout: none) {
-    @media screen and (max-width: 430px) {
-        input, select, textarea {
-            font-size: 16px !important;
-            -webkit-appearance: none;
-            border-radius: 10px;
-        }
-        .btn {
-            -webkit-tap-highlight-color: transparent;
-        }
-    }
+.auth-card input:focus { border-color: #3b82f6; }
+.auth-card button {
+    width: 100%;
+    padding: 14px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
 }
-
-/* ========== Android 优化 ========== */
-@media screen and (-webkit-min-device-pixel-ratio: 2) and (max-width: 430px) {
-    .btn, input, select, textarea {
-        transform: translateZ(0);
-    }
+.auth-card button:hover { background: #2563eb; }
+.auth-error { color: #ef4444; margin-top: 12px; font-size: 0.9rem; }
+.error-card { text-align: center; padding: 80px 40px; }
+.error-card h1 { font-size: 1.8rem; color: #1e293b; margin-bottom: 10px; }
+.error-card p { color: #64748b; }
+.notice {
+    text-align: center;
+    padding: 12px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
 }
-
-/* ========== 打印样式 ========== */
-@media print {
-    body {
-        background: white !important;
-        -webkit-print-color-adjust: exact;
-    }
-    .card {
-        box-shadow: none;
-        border: 1px solid #ddd;
-    }
-    .header {
-        background: #667eea !important;
-        -webkit-print-color-adjust: exact;
-    }
-    .tabs, .btn, .file-upload {
-        display: none;
-    }
-    .content {
-        padding: 20px;
-    }
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 100;
 }
-
-/* ========== 深色模式（系统级） ========== */
-@media (prefers-color-scheme: dark) {
-    @media only screen and (min-width: 1025px) {
-        /* 桌面端深色模式 */
-    }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (max-width: 640px) {
+    .editor-header { padding: 12px 16px; }
+    .editor-area { padding: 12px; min-height: calc(100vh - 160px); }
+    .editor-area textarea { min-height: 50vh; font-size: 15px; }
+    .auth-card { margin: 40px 16px; padding: 32px 24px; }
+    .file-card { padding: 40px 24px; }
+    .markdown-body { padding: 16px; }
 }
-
-/* ========== 减少动画（无障碍） ========== */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-
-/* ========== 高对比度模式 ========== */
-@media (prefers-contrast: high) {
-    .btn, .tab.active {
-        border: 2px solid currentColor;
-    }
-}
-    /* iPhone 14/15/16/17 Pro Max 系列 */
-    body { 
-        padding: 15px 12px; 
-        -webkit-text-size-adjust: 100%;
-    }
-    .container { 
-        max-width: 100%; 
-        padding: 0;
-    }
-    .header { 
-        margin-bottom: 25px; 
-        padding: 0 5px;
-    }
-    .header h1 { 
-        font-size: 1.8em; 
-        margin-bottom: 8px;
-    }
-    .header p { 
-        font-size: 0.85em; 
-        line-height: 1.4;
-    }
-    .stats { 
-        font-size: 0.75em; 
-        padding: 6px 12px;
-        margin-top: 8px;
-    }
-    
-    /* 卡片优化 */
-    .card { 
-        border-radius: 12px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    
-    /* 标签页 */
-    .tabs { 
-        flex-direction: column;
-    }
-    .tab { 
-        padding: 14px; 
-        font-size: 15px;
-        border-bottom: 1px solid #e0e0e0;
-    }
-    .tab.active {
-        border-bottom: 3px solid #667eea;
-    }
-    
-    /* 内容区 */
-    .content { 
-        padding: 18px 15px; 
-    }
-    
-    /* 表单元素 */
-    .row { 
-        grid-template-columns: 1fr; 
-        gap: 12px; 
-    }
-    .form-group { 
-        margin-bottom: 15px; 
-    }
-    label { 
-        font-size: 14px; 
-        margin-bottom: 6px;
-    }
-    textarea { 
-        min-height: 180px; 
-        font-size: 16px; 
-        padding: 12px;
-        border-radius: 10px;
-        -webkit-appearance: none;
-    }
-    input, select { 
-        font-size: 16px; 
-        padding: 14px 12px;
-        height: 48px;
-        border-radius: 10px;
-        -webkit-appearance: none;
-    }
-    
-    /* 按钮 */
-    .btn { 
-        padding: 16px; 
-        font-size: 16px;
-        height: 52px;
-        border-radius: 10px;
-        font-weight: 600;
-        -webkit-tap-highlight-color: transparent;
-    }
-    
-    /* 文件上传 */
-    .file-upload { 
-        padding: 35px 20px; 
-        border-radius: 10px;
-    }
-    .file-upload p {
-        font-size: 14px;
-    }
-    
-    /* 结果提示 */
-    .result { 
-        padding: 18px; 
-        margin-top: 18px;
-    }
-    .result h3 {
-        font-size: 16px;
-    }
-    .result a {
-        font-size: 13px;
-        word-break: break-all;
-    }
-    
-    /* 查看页面 */
-    .code-container {
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    .code-header {
-        padding: 12px 15px;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-    .code-header span {
-        font-size: 13px;
-    }
-    .copy-btn {
-        padding: 8px 14px;
-        font-size: 13px;
-    }
-    pre code {
-        font-size: 12px;
-        line-height: 1.5;
-        padding: 15px;
-    }
-    
-    /* 密码页面 */
-    .password-form {
-        padding: 40px 20px;
-    }
-    .password-form input {
-        max-width: 100%;
-        font-size: 16px;
-    }
-    .password-form button {
-        width: 100%;
-        height: 50px;
-    }
-    
-    /* 文件下载页 */
-    .file-info {
-        padding: 40px 20px;
-    }
-    .file-info h2 {
-        font-size: 1.2em;
-        word-break: break-word;
-    }
-    .download-btn {
-        width: 100%;
-        padding: 16px;
-        font-size: 16px;
-        text-align: center;
-    }
-}
-
-/* ========== iPad 优化 ========== */
-@media only screen and (min-width: 768px) and (max-width: 1024px) {
-    /* iPad Air/Pro 系列 */
-    body {
-        padding: 30px 20px;
-    }
-    .container {
-        max-width: 95%;
-    }
-    .header h1 {
-        font-size: 2.5em;
-    }
-    
-    /* 标签页横向但更大 */
-    .tab {
-        padding: 18px;
-        font-size: 17px;
-    }
-    
-    /* 内容区更宽松 */
-    .content {
-        padding: 35px;
-    }
-    
-    /* 两列布局但间距更大 */
-    .row {
-        gap: 25px;
-    }
-    
-    /* 更大的触摸区域 */
-    textarea {
-        min-height: 250px;
-        font-size: 16px;
-    }
-    input, select {
-        padding: 16px;
-        height: 52px;
-        font-size: 16px;
-    }
-    .btn {
-        padding: 18px;
-        font-size: 17px;
-        height: 56px;
-    }
-    
-    /* 代码区 */
-    pre code {
-        font-size: 14px;
-        padding: 20px;
-    }
-}
-
-/* ========== iOS Safari 特殊优化 ========== */
-@supports (-webkit-touch-callout: none) {
-    /* iOS 设备通用 */
-    input, textarea, select {
-        -webkit-appearance: none;
-        border-radius: 10px;
-    }
-    
-    /* 防止 iOS 缩放 */
-    @media screen and (max-width: 430px) {
-        input, select, textarea {
-            font-size: 16px !important;
-        }
-    }
-    
-    /* 平滑滚动 */
-    .card, pre {
-        -webkit-overflow-scrolling: touch;
-    }
-    
-    /* 禁用双击缩放 */
-    * {
-        touch-action: manipulation;
-    }
-}
-
-/* ========== 横屏模式 ========== */
-@media only screen and (max-width: 896px) and (orientation: landscape) {
-    /* iPhone 横屏 */
-    .header h1 {
-        font-size: 1.5em;
-    }
-    .tabs {
-        flex-direction: row;
-    }
-    .tab {
-        padding: 12px;
-        font-size: 14px;
-    }
-    textarea {
-        min-height: 120px;
-    }
-}
-        body { padding: 20px 10px; }
-        .container { max-width: 100%; }
-        .header h1 { font-size: 2em; }
-        .header p { font-size: 0.9em; }
-        .stats { font-size: 0.8em; padding: 8px 15px; }
-        .tabs { flex-direction: column; }
-        .tab { padding: 15px; font-size: 14px; }
-        .content { padding: 20px 15px; }
-        .row { grid-template-columns: 1fr; gap: 15px; }
-        textarea { min-height: 200px; font-size: 16px; }
-        input, select { font-size: 16px; padding: 15px; }
-        .btn { padding: 18px; font-size: 16px; }
-        .file-upload { padding: 30px 20px; }
-        .header { flex-direction: column; gap: 15px; padding: 20px; }
-        .lang-selector select { width: 100%; }
-        pre code { font-size: 13px; }
-        .code-header { flex-direction: column; gap: 10px; }
-        .password-form { padding: 40px 20px; }
-        .password-form input { max-width: 100%; }
-    }
-body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;margin:0;padding:40px 20px}
-.container{max-width:1000px;margin:0 auto}
-.card{background:white;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden}
-.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:30px;display:flex;justify-content:space-between;align-items:center}
-.header h1{margin:0;font-size:1.5em}
-.lang-selector select{padding:8px 15px;border-radius:6px;border:none;font-size:14px}
-.content{padding:0}
-.password-form{text-align:center;padding:60px 40px}
-.password-form input{width:100%;max-width:300px;padding:15px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;margin-bottom:20px}
-.password-form button{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:15px 40px;font-size:16px;border-radius:8px;cursor:pointer}
-.code-container{position:relative}
-.code-header{background:#2d2d2d;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
-.copy-btn{background:#444;color:#fff;border:none;padding:5px 15px;border-radius:4px;cursor:pointer;font-size:12px}
-.copy-btn:hover{background:#555}
-pre{margin:0;border-radius:0}
-pre code{font-family:'Fira Code',monospace;font-size:14px;line-height:1.6}
-.file-info{text-align:center;padding:60px 40px}
-.download-btn{display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-decoration:none;padding:15px 40px;border-radius:8px;margin-top:20px}
-.error{text-align:center;padding:60px;color:#666}
 </style>
 </head>
 <body>
-<div class="container">
-<div class="card">
-{% if need_password %}
-<div class="header"><h1>🔒 需要密码</h1></div>
-<div class="content">
-<form class="password-form" method="POST">
-<p>此内容已设置密码保护</p>
-<input type="password" name="password" placeholder="请输入访问密码" required><br>
-<button type="submit">🔓 解锁</button>
-{% if error %}<p style="color:#e74c3c;margin-top:20px;">{{ error }}</p>{% endif %}
-</form>
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">📋 TextDB</a>
+        <a href="/" class="nav-back">← 返回首页</a>
+    </div>
+</nav>
+<div class="main">
+    <div class="container">
+        {% if need_password %}
+        <div class="card auth-card">
+            <h2>🔒 需要密码</h2>
+            <p>此内容已设置密码保护</p>
+            <form method="POST">
+                <input type="password" name="password" placeholder="请输入访问密码" required autofocus>
+                <button type="submit">🔓 解锁查看</button>
+                {% if error %}<div class="auth-error">{{ error }}</div>{% endif %}
+            </form>
+        </div>
+        {% elif expired %}
+        <div class="card error-card">
+            <h1>⏰ 内容已过期</h1>
+            <p>此内容已达到设定的过期时间，已被自动清理</p>
+        </div>
+        {% elif not_found %}
+        <div class="card error-card">
+            <h1>❓ 内容不存在</h1>
+            <p>您访问的内容不存在或已被删除</p>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="editor-header">
+                <div>
+                    <div class="editor-title">📝 {{ title }}</div>
+                    <div class="editor-meta">访问次数 {{ access_count }} · 可直接编辑保存</div>
+                </div>
+                <div class="editor-actions">
+                    {% if is_text %}
+                    <button class="btn-copy" onclick="copyAll()">📋 复制</button>
+                    <button class="btn-save" onclick="saveEdit()">💾 保存</button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="content-area">
+                {% if is_text %}
+                    {% if is_markdown %}
+                    <div class="markdown-body" id="markdownBody" data-raw="{{ content | forceescape }}">{{ content | forceescape }}</div>
+                    <div style="padding:16px 20px;border-top:1px solid #e2e8f0;background:#fafafa;display:flex;gap:10px;justify-content:flex-end;">
+                        <button class="btn-copy" onclick="copyMarkdown()">📋 复制原文</button>
+                    </div>
+                    {% else %}
+                    <div class="editor-area">
+                        <textarea id="editContent" oninput="updateCharCount()">{{ content | forceescape }}</textarea>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+                            <span id="charCount" style="font-size:0.85rem;color:#94a3b8;">{{ content | length }} 字符</span>
+                            <span id="editResult" style="font-size:0.9rem;display:none;"></span>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="file-card">
+                    <div class="file-icon">📁</div>
+                    <div class="file-name">{{ filename }}</div>
+                    <div class="file-size">{{ file_size }}</div>
+                    <a href="/d/{{ key }}" class="btn-download">⬇️ 下载文件</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
-{% elif expired %}
-<div class="error"><h1>⏰ 内容已过期</h1><p>此内容已达到设定的过期时间</p></div>
-{% elif not_found %}
-<div class="error"><h1>❓ 内容不存在</h1><p>您访问的内容不存在或已被删除</p></div>
-{% else %}
-<div class="header">
-<h1>{{ title }}</h1>
-{% if is_text %}
-<div class="lang-selector">
-<select id="langSelect" onchange="changeLang()">
-<option value="auto">🔍 自动检测</option>
-<option value="python">🐍 Python</option>
-<option value="javascript">📜 JavaScript</option>
-<option value="bash">💻 Bash</option>
-<option value="json">📋 JSON</option>
-<option value="html">🌐 HTML</option>
-<option value="css">🎨 CSS</option>
-<option value="sql">🗄️ SQL</option>
-<option value="plaintext">📝 纯文本</option>
-</select>
+<div class="notice">
+    TextDB · 安全可靠的在线分享工具
 </div>
-{% endif %}
-</div>
-<div class="content">
-{% if is_text %}
-<div class="code-container">
-<div class="code-header">
-<span id="langLabel">代码</span>
-<button class="copy-btn" onclick="copyCode()">📋 复制</button>
-</div>
-<pre><code id="codeBlock">{{ content | safe }}</code></pre>
-</div>
-{% else %}
-<div class="file-info">
-<h2>📁 {{ filename }}</h2>
-<p>文件大小: {{ file_size }}</p>
-<a href="/d/{{ key }}" class="download-btn">⬇️ 下载文件</a>
-</div>
-{% endif %}
-</div>
-{% endif %}
-</div>
-</div>
+<div class="toast" id="toast"></div>
 <script>
-function detectLanguage(code){
-if(/import\s+\w+|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+/.test(code))return'python';
-if(/function\s+\w+|const\s+\w+|console\./.test(code))return'javascript';
-if(/#\!\/bin\/bash|echo\s|cd\s/.test(code))return'bash';
-if(/"\w+":\s*"/.test(code))return'json';
-if(/<!DOCTYPE|<html|<div/.test(code))return'html';
-if(/SELECT\s+|INSERT\s+|UPDATE\s+/i.test(code))return'sql';
-return'plaintext'}
-function highlightCode(){
-const codeBlock=document.getElementById('codeBlock');
-const langSelect=document.getElementById('langSelect');
-const langLabel=document.getElementById('langLabel');
-if(!codeBlock)return;
-let lang=langSelect.value;
-if(lang==='auto'){lang=detectLanguage(codeBlock.textContent);langSelect.value=lang}
-codeBlock.className=lang==='plaintext'?'':'language-'+lang;
-langLabel.textContent=langSelect.options[langSelect.selectedIndex].text.split(' ')[1];
-if(lang!=='plaintext')hljs.highlightElement(codeBlock)}
-function changeLang(){
-const codeBlock=document.getElementById('codeBlock');
-codeBlock.textContent=codeBlock.textContent;
-highlightCode()}
-function copyCode(){
-const code=document.getElementById('codeBlock').textContent;
-if(navigator.clipboard&&navigator.clipboard.writeText){
-navigator.clipboard.writeText(code).then(()=>{
-const btn=document.querySelector('.copy-btn');
-btn.textContent='✅ 已复制';
-setTimeout(()=>btn.textContent='📋 复制',2000);
-}).catch(()=>copyFallback(code));
-}else{
-copyFallback(code);
-}}
-function copyFallback(text){
-const textarea=document.createElement('textarea');
-textarea.value=text;
-textarea.style.position='fixed';
-textarea.style.opacity='0';
-document.body.appendChild(textarea);
-textarea.select();
-try{
-document.execCommand('copy');
-const btn=document.querySelector('.copy-btn');
-btn.textContent='✅ 已复制';
-setTimeout(()=>btn.textContent='📋 复制',2000);
-}catch(err){
-alert('复制失败，请手动选择复制');
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
 }
-document.body.removeChild(textarea);
+function saveEdit(){
+    var content=document.getElementById('editContent').value;
+    if(!content.trim()){showToast('内容不能为空');return}
+    var btn=document.querySelector('.btn-save');
+    var old=btn.textContent;btn.textContent='⏳ 保存中...';btn.disabled=true;
+    fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:content,key:'{{ title }}',overwrite:true})}).then(r=>r.json()).then(data=>{
+        btn.textContent=old;btn.disabled=false;
+        if(data.success){showToast('✅ 保存成功');}
+        else{showToast('❌ '+data.error)}
+    }).catch(()=>{btn.textContent=old;btn.disabled=false;showToast('网络错误')})
 }
-document.addEventListener('DOMContentLoaded',highlightCode);
+function copyAll(){
+    var content=document.getElementById('editContent').value;
+    navigator.clipboard.writeText(content).then(()=>showToast('✅ 已复制')).catch(()=>showToast('复制失败'))
+}
+function updateCharCount(){
+    var c=document.getElementById('editContent').value.length;
+    document.getElementById('charCount').textContent=c+' 字符';
+}
+function renderMarkdown() {
+    const markdownBody = document.getElementById('markdownBody');
+    if (markdownBody && typeof marked !== 'undefined') {
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true, gfm: true
+        });
+        const rawContent = markdownBody.getAttribute('data-raw') || markdownBody.textContent;
+        markdownBody.innerHTML = marked.parse(rawContent);
+        markdownBody.querySelectorAll('pre code').forEach((block) => { hljs.highlightElement(block); });
+    }
+}
+function copyMarkdown() {
+    const markdownBody = document.getElementById('markdownBody');
+    if (!markdownBody) return;
+    const rawContent = markdownBody.getAttribute('data-raw') || markdownBody.textContent;
+    navigator.clipboard.writeText(rawContent).then(() => showToast('✅ 已复制')).catch(() => showToast('复制失败'));
+}
+document.addEventListener('DOMContentLoaded', function() {
+    renderMarkdown();
+    updateCharCount();
+});
 </script>
-</body></html>"""
+</body>
+</html>"""
 
 @app.after_request
 def add_header(response):
@@ -1198,6 +894,18 @@ def index():
     conn.close()
     return render_template_string(HOME_TEMPLATE, stats={'text_count': text_count, 'file_count': file_count})
 
+@app.route('/api/check/<key>', methods=['GET'])
+def check_key(key):
+    """检查 key 是否已存在"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, content FROM items WHERE key=?", (key,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return jsonify({'exists': True, 'key': key})
+    return jsonify({'exists': False, 'key': key})
+
 @app.route('/api/save', methods=['POST'])
 def save_text():
     data = request.get_json()
@@ -1205,6 +913,7 @@ def save_text():
     key = data.get('key', '').strip()
     password = data.get('password', '')
     expires = data.get('expires', '')
+    overwrite = data.get('overwrite', False)
     if not content:
         return jsonify({'success': False, 'error': '内容不能为空'})
     if not key:
@@ -1212,9 +921,25 @@ def save_text():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT id FROM items WHERE key=?", (key,))
-    if c.fetchone():
+    existing = c.fetchone()
+    if existing:
+        if not overwrite:
+            conn.close()
+            return jsonify({'success': False, 'exists': True, 'error': '该链接已存在内容，是否覆盖？'})
+        # 覆盖已有内容
+        expires_at = None
+        if expires:
+            delta = {'1h': timedelta(hours=1), '1d': timedelta(days=1), 
+                     '7d': timedelta(days=7), '30d': timedelta(days=30)}
+            if expires in delta:
+                expires_at = (datetime.now() + delta[expires]).isoformat()
+        c.execute('UPDATE items SET content=?, password_hash=?, expires_at=? WHERE key=?',
+                  (content, hash_password(password), expires_at, key))
+        conn.commit()
         conn.close()
-        return jsonify({'success': False, 'error': '该链接已被使用'})
+        url = f'http://{request.host}/{key}'
+        qr_code = generate_qr_code(url)
+        return jsonify({'success': True, 'key': key, 'url': url, 'has_password': bool(password), 'qr_code': qr_code, 'overwritten': True})
     expires_at = None
     if expires:
         delta = {'1h': timedelta(hours=1), '1d': timedelta(days=1), 
@@ -1296,12 +1021,24 @@ def view_item(key):
     conn.commit()
     conn.close()
     item_type = row[2]
+    access_count = row[9] if len(row) > 9 else 0
     if item_type == 'text':
-        return render_template_string(VIEW_TEMPLATE, title=key, is_text=True, content=row[3])
+        return render_template_string(VIEW_TEMPLATE, title=key, is_text=True, content=row[3], is_markdown=False, access_count=access_count)
     else:
-        file_size = os.path.getsize(row[5])
+        filename = row[4]
+        file_path = row[5]
+        file_size = os.path.getsize(file_path)
         size_str = f"{file_size/1024/1024:.2f} MB" if file_size > 1024*1024 else f"{file_size/1024:.2f} KB"
-        return render_template_string(VIEW_TEMPLATE, title=key, is_text=False, filename=row[4], file_size=size_str, key=key)
+        # 检查是否是 Markdown 文件
+        is_markdown = filename.lower().endswith('.md') or filename.lower().endswith('.markdown')
+        if is_markdown:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    md_content = f.read()
+                return render_template_string(VIEW_TEMPLATE, title=key, is_text=True, content=md_content, is_markdown=True, filename=filename, access_count=access_count)
+            except:
+                pass
+        return render_template_string(VIEW_TEMPLATE, title=key, is_text=False, filename=filename, file_size=size_str, key=key, access_count=access_count)
 
 @app.route('/d/<key>')
 def download_file(key):
