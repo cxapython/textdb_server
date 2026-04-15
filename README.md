@@ -11,11 +11,13 @@
 - ⏰ **过期时间** - 支持 1小时/1天/7天/30天/永不过期
 - 📱 **二维码分享** - 自动生成二维码，手机扫码访问
 
-### 代码高亮
-- 🔍 自动检测语言（Python/JavaScript/Bash/JSON/HTML/CSS/SQL）
-- 🎨 支持手动切换语言
+### 代码高亮与格式化
+- 🔍 自动检测语言（Python/JavaScript/JSON/HTML/CSS/Java/C/C++/Bash/SQL/YAML/Go/Rust/Markdown）
+- 🎨 支持手动切换 15 种语言/模式
+- 🖌️ 一键格式化代码（JSON/JavaScript/CSS/HTML）
 - 📋 一键复制代码
-- 🌙 GitHub Dark 主题
+- 📝 智能预览：Markdown 自动渲染、代码语法高亮、纯文本保留格式
+- 🌙 GitHub 高亮主题
 
 ### 多端适配
 - 📱 iPhone（SE/mini/标准版/Pro/Pro Max）
@@ -125,6 +127,12 @@ export PORT=8080
 - ✅ 微信内置浏览器
 
 ## 📝 更新日志
+
+### v1.1.0 (2026-04-15)
+- ✨ 代码查看页新增语言模式检测与智能切换
+- ✨ 支持 15 种语言/模式的语法高亮
+- ✨ 新增一键格式化功能（JSON/JS/CSS/HTML）
+- ✨ 智能预览：Markdown 自动渲染、代码高亮、纯文本保留格式
 
 ### v1.0.0 (2026-04-02)
 - ✨ 初始版本发布
