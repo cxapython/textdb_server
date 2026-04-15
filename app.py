@@ -554,7 +554,19 @@ VIEW_TEMPLATE = """<!DOCTYPE html>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-html.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -647,6 +659,25 @@ a { text-decoration: none; color: inherit; }
     background: #fafafa;
     color: #1e293b;
 }
+.lang-bar {
+    padding: 10px 20px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.lang-bar span { font-size: 0.85rem; color: #64748b; font-weight: 500; }
+.lang-bar select {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    cursor: pointer;
+}
+.lang-bar button { padding: 6px 14px; font-size: 0.85rem; }
 .editor-area textarea:focus { border-color: #3b82f6; background: #fff; }
 .markdown-body {
     padding: 24px;
@@ -735,6 +766,8 @@ a { text-decoration: none; color: inherit; }
     z-index: 100;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.hidden { display: none !important; }
+.mode-active { background: #3b82f6 !important; color: #fff !important; }
 @media (max-width: 640px) {
     .editor-header { padding: 12px 16px; }
     .editor-area { padding: 12px; min-height: calc(100vh - 160px); }
@@ -783,27 +816,46 @@ a { text-decoration: none; color: inherit; }
                 </div>
                 <div class="editor-actions">
                     {% if is_text %}
+                    <button class="btn-copy" id="btnPreview" onclick="switchMode('preview')">👁 预览</button>
+                    <button class="btn-copy" id="btnEdit" onclick="switchMode('edit')">📝 编辑</button>
                     <button class="btn-copy" onclick="copyAll()">📋 复制</button>
                     <button class="btn-save" onclick="saveEdit()">💾 保存</button>
                     {% endif %}
                 </div>
             </div>
+            {% if is_text %}
+            <div class="lang-bar" id="langBar">
+                <span>语言模式</span>
+                <select id="langSelect" onchange="onLangChange()">
+                    <option value="auto">🔍 自动检测</option>
+                    <option value="markdown">📝 Markdown</option>
+                    <option value="plaintext">📄 纯文本</option>
+                    <option value="python">🐍 Python</option>
+                    <option value="javascript">📜 JavaScript</option>
+                    <option value="json">📋 JSON</option>
+                    <option value="html">🌐 HTML</option>
+                    <option value="css">🎨 CSS</option>
+                    <option value="java">☕ Java</option>
+                    <option value="cpp">🔧 C/C++</option>
+                    <option value="bash">💻 Bash</option>
+                    <option value="sql">🗄️ SQL</option>
+                    <option value="yaml">⚙️ YAML</option>
+                    <option value="go">🐹 Go</option>
+                    <option value="rust">⚙️ Rust</option>
+                </select>
+                <button class="btn-copy" onclick="formatCode()">🎨 格式化</button>
+            </div>
+            {% endif %}
             <div class="content-area">
                 {% if is_text %}
-                    {% if is_markdown %}
-                    <div class="markdown-body" id="markdownBody" data-raw="{{ content | forceescape }}">{{ content | forceescape }}</div>
-                    <div style="padding:16px 20px;border-top:1px solid #e2e8f0;background:#fafafa;display:flex;gap:10px;justify-content:flex-end;">
-                        <button class="btn-copy" onclick="copyMarkdown()">📋 复制原文</button>
+                <div class="editor-area" id="editorArea">
+                    <textarea id="editContent" oninput="updateCharCount()">{{ content | forceescape }}</textarea>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+                        <span id="charCount" style="font-size:0.85rem;color:#94a3b8;">{{ content | length }} 字符</span>
+                        <span id="editResult" style="font-size:0.9rem;display:none;"></span>
                     </div>
-                    {% else %}
-                    <div class="editor-area">
-                        <textarea id="editContent" oninput="updateCharCount()">{{ content | forceescape }}</textarea>
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
-                            <span id="charCount" style="font-size:0.85rem;color:#94a3b8;">{{ content | length }} 字符</span>
-                            <span id="editResult" style="font-size:0.9rem;display:none;"></span>
-                        </div>
-                    </div>
-                    {% endif %}
+                </div>
+                <div class="markdown-body hidden" id="markdownBody"></div>
                 {% else %}
                 <div class="file-card">
                     <div class="file-icon">📁</div>
@@ -847,30 +899,179 @@ function updateCharCount(){
     var c=document.getElementById('editContent').value.length;
     document.getElementById('charCount').textContent=c+' 字符';
 }
-function renderMarkdown() {
+function isMarkdownLike(text) {
+    if (!text) return false;
+    const mdPatterns = [
+        /^#{1,6}\s/m,               // 标题
+        /^\s*[-*+]\s/m,            // 列表
+        /^\s*\d+\.\s/m,             // 有序列表
+        /^\s*```/m,                // 代码块
+        /\|.*\|/,                   // 表格
+        /!?\[.+\]\(.+\)/,           // 链接/图片
+        /^\s*>\s/m,                // 引用
+        /^\s*---\s*$/m,            // 分割线
+        /\*\*|__/                  // 粗体/斜体
+    ];
+    return mdPatterns.some(p => p.test(text));
+}
+function detectCodeLang(text) {
+    if (!text || text.trim().length === 0) return 'plaintext';
+    if (isMarkdownLike(text)) return 'markdown';
+    const sample = text.slice(0, 3000);
+    if (/^\s*<!DOCTYPE\s+html/i.test(sample) || /^\s*<[a-zA-Z]+[\s>]/m.test(sample) && /<\//m.test(sample)) return 'html';
+    if (/^\s*(function|const|let|var)\s+\w+|console\.|document\.|window\.|=>|import\s+.*from|export\s+default/m.test(sample)) return 'javascript';
+    if (/^\s*import\s+\w+|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+.*:|print\s*\(|if\s+.*:\s*$|#.*python|#!\/usr\/bin\/env python/m.test(sample)) return 'python';
+    if (/^\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*$/m.test(sample) && /"[\w]+"\s*:/m.test(sample)) return 'json';
+    if (/^\s*(\.[\w-]+\s*\{|body\s*\{|@media|@import|color\s*:|padding\s*:|margin\s*:)/m.test(sample)) return 'css';
+    if (/^\s*#include\s+|int\s+main\s*\(|cout\s*<<|printf\s*\(|std::/m.test(sample)) return 'cpp';
+    if (/^\s*public\s+class\s+|private\s+|protected\s+|System\.out\.println|import\s+java\./m.test(sample)) return 'java';
+    if (/^\s*package\s+main|import\s+\(|func\s+\w+\(|fmt\.Println|go\s+func/m.test(sample)) return 'go';
+    if (/^\s*fn\s+main|let\s+\w+:|println!|use\s+std::|impl\s+/m.test(sample)) return 'rust';
+    if (/^\s*SELECT\s+|INSERT\s+|UPDATE\s+|DELETE\s+|CREATE\s+TABLE|FROM\s+\w+\s+WHERE/mi.test(sample)) return 'sql';
+    if (/^\s*---\s*$|^\s*\w+:\s/m.test(sample)) return 'yaml';
+    if (/^\s*#\!\/bin\/(bash|sh)|^\s*echo\s|^\s*cd\s|^\s*mkdir\s|^\s*git\s/m.test(sample)) return 'bash';
+    return 'plaintext';
+}
+function onLangChange() {
+    const previewBtn = document.getElementById('btnPreview');
+    if (previewBtn && previewBtn.classList.contains('mode-active')) {
+        renderPreview();
+    }
+}
+function renderPreview() {
     const markdownBody = document.getElementById('markdownBody');
-    if (markdownBody && typeof marked !== 'undefined') {
+    const editContent = document.getElementById('editContent');
+    const lang = document.getElementById('langSelect').value;
+    const raw = editContent.value;
+    markdownBody.className = 'markdown-body';
+    markdownBody.innerHTML = '';
+    if (lang === 'auto') {
+        const detected = detectCodeLang(raw);
+        if (detected === 'markdown') renderMarkdownPreview(raw);
+        else if (detected === 'plaintext') renderPlainPreview(raw);
+        else renderCodePreview(raw, detected);
+    } else if (lang === 'markdown') renderMarkdownPreview(raw);
+    else if (lang === 'plaintext') renderPlainPreview(raw);
+    else renderCodePreview(raw, lang);
+}
+function renderPlainPreview(raw) {
+    const markdownBody = document.getElementById('markdownBody');
+    const pre = document.createElement('pre');
+    pre.style = 'background:#f8fafc;padding:16px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;';
+    pre.textContent = raw;
+    markdownBody.appendChild(pre);
+}
+function renderMarkdownPreview(raw) {
+    const markdownBody = document.getElementById('markdownBody');
+    if (typeof marked !== 'undefined') {
         marked.setOptions({
             highlight: function(code, lang) {
                 if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
-                return hljs.highlightAuto(code).value;
+                try { return hljs.highlightAuto(code).value; } catch(e) { return code; }
             },
             breaks: true, gfm: true
         });
-        const rawContent = markdownBody.getAttribute('data-raw') || markdownBody.textContent;
-        markdownBody.innerHTML = marked.parse(rawContent);
+        markdownBody.innerHTML = marked.parse(raw);
         markdownBody.querySelectorAll('pre code').forEach((block) => { hljs.highlightElement(block); });
+    } else {
+        renderPlainPreview(raw);
     }
 }
-function copyMarkdown() {
+function renderCodePreview(raw, lang) {
     const markdownBody = document.getElementById('markdownBody');
-    if (!markdownBody) return;
-    const rawContent = markdownBody.getAttribute('data-raw') || markdownBody.textContent;
-    navigator.clipboard.writeText(rawContent).then(() => showToast('✅ 已复制')).catch(() => showToast('复制失败'));
+    const pre = document.createElement('pre');
+    pre.style = 'background:#f8fafc;padding:0;border-radius:8px;overflow-x:auto;margin:0;';
+    const code = document.createElement('code');
+    code.className = (lang && lang !== 'auto' && lang !== 'plaintext') ? 'language-' + lang : '';
+    code.textContent = raw;
+    pre.appendChild(code);
+    markdownBody.appendChild(pre);
+    if (typeof hljs !== 'undefined') {
+        try { hljs.highlightElement(code); } catch(e) {}
+    }
+}
+function formatCode() {
+    const ta = document.getElementById('editContent');
+    const raw = ta.value;
+    const lang = document.getElementById('langSelect').value;
+    const detected = lang === 'auto' ? detectCodeLang(raw) : lang;
+    if (detected === 'json') {
+        try {
+            const obj = JSON.parse(raw);
+            ta.value = JSON.stringify(obj, null, 4);
+            showToast('✅ JSON 格式化成功');
+            updateCharCount();
+            onLangChange();
+            return;
+        } catch(e) {
+            showToast('❌ JSON 格式错误: ' + e.message);
+            return;
+        }
+    }
+    if (typeof beautify !== 'undefined' && detected === 'javascript') {
+        try {
+            ta.value = beautify.js_beautify(raw, { indent_size: 4 });
+            showToast('✅ JS 格式化成功');
+            updateCharCount();
+            onLangChange();
+            return;
+        } catch(e) {}
+    }
+    if (typeof css_beautify !== 'undefined' && detected === 'css') {
+        try {
+            ta.value = css_beautify(raw, { indent_size: 4 });
+            showToast('✅ CSS 格式化成功');
+            updateCharCount();
+            onLangChange();
+            return;
+        } catch(e) {}
+    }
+    if (typeof html_beautify !== 'undefined' && detected === 'html') {
+        try {
+            ta.value = html_beautify(raw, { indent_size: 4 });
+            showToast('✅ HTML 格式化成功');
+            updateCharCount();
+            onLangChange();
+            return;
+        } catch(e) {}
+    }
+    showToast('ℹ️ 当前语言暂不支持自动格式化（支持 JSON/JS/CSS/HTML）');
+}
+function switchMode(mode) {
+    const editorArea = document.getElementById('editorArea');
+    const markdownBody = document.getElementById('markdownBody');
+    const btnPreview = document.getElementById('btnPreview');
+    const btnEdit = document.getElementById('btnEdit');
+    if (mode === 'preview') {
+        editorArea.classList.add('hidden');
+        markdownBody.classList.remove('hidden');
+        btnPreview.classList.add('mode-active');
+        btnEdit.classList.remove('mode-active');
+        renderPreview();
+    } else {
+        editorArea.classList.remove('hidden');
+        markdownBody.classList.add('hidden');
+        btnEdit.classList.add('mode-active');
+        btnPreview.classList.remove('mode-active');
+    }
 }
 document.addEventListener('DOMContentLoaded', function() {
-    renderMarkdown();
     updateCharCount();
+    {% if is_text %}
+    const content = document.getElementById('editContent').value;
+    const langSel = document.getElementById('langSelect');
+    const detected = detectCodeLang(content);
+    if (langSel) {
+        for (let i = 0; i < langSel.options.length; i++) {
+            if (langSel.options[i].value === detected) {
+                langSel.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    const isMd = detected === 'markdown';
+    switchMode(isMd ? 'preview' : 'edit');
+    {% endif %}
 });
 </script>
 </body>
