@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import os, hashlib, secrets, sqlite3, io, base64
+import os, hashlib, secrets, sqlite3, io, base64, re
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template_string, send_file, abort
 import qrcode
@@ -12,6 +12,43 @@ UPLOAD_DIR = "/root/textdb/uploads"
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 DB_PATH = os.path.join(DATA_DIR, "textdb.db")
+
+def cleanup_expired_items():
+    """清理所有过期的记录和文件，启动时和访问时调用"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    now = datetime.now().isoformat()
+    c.execute("SELECT id, key, file_path FROM items WHERE expires_at IS NOT NULL AND expires_at < ?", (now,))
+    expired = c.fetchall()
+    for item_id, key, file_path in expired:
+        # 删除物理文件
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+        # 删除数据库记录
+        c.execute("DELETE FROM items WHERE id=?", (item_id,))
+    conn.commit()
+    conn.close()
+    return len(expired)
+
+def delete_item_by_key(key):
+    """根据 key 删除一条记录及其文件"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT file_path FROM items WHERE key=?", (key,))
+    row = c.fetchone()
+    if row:
+        file_path = row[0]
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+        c.execute("DELETE FROM items WHERE key=?", (key,))
+        conn.commit()
+    conn.close()
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -26,9 +63,13 @@ def init_db():
     )''')
     conn.commit()
     conn.close()
+    # 启动时清理过期记录
+    cleanup_expired_items()
+
 
 def generate_key():
     return secrets.token_urlsafe(8)
+
 
 def generate_qr_code(url):
     """生成二维码，返回 base64 图片数据"""
@@ -55,6 +96,79 @@ def hash_password(password):
     if not password:
         return None
     return hashlib.sha256(password.encode()).hexdigest()[:16]
+
+def detect_code_lang(text):
+    """根据内容自动检测代码语言，优先检测编程语言，最后检测Markdown（避免误匹配）"""
+    if not text or not text.strip():
+        return 'plaintext'
+    sample = text[:3000]
+    # 优先检查 shebang
+    if re.search(r'^#!.*python', sample, re.I | re.M):
+        return 'python'
+    if re.search(r'^#!.*node', sample, re.I | re.M):
+        return 'javascript'
+    if re.search(r'^#!.*bash|^#!/bin/sh', sample, re.I | re.M):
+        return 'bash'
+    # HTML（特异性高，优先）
+    if re.search(r'^\s*<!DOCTYPE\s+html', sample, re.I) or \
+       (re.search(r'^\s*<[a-zA-Z]+[\s>]', sample, re.M) and re.search(r'<\/', sample, re.M)):
+        return 'html'
+    # Python（放在Markdown之前，避免#注释和__变量名被误判）
+    if re.search(r'^\s*import\s+\w+|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+.*:|print\s*\(|if\s+.*:\s*$', sample, re.M):
+        return 'python'
+    # JSON
+    if re.search(r'^\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*$', sample, re.M) and re.search(r'"[\w]+"\s*:', sample, re.M):
+        return 'json'
+    # CSS
+    if re.search(r'^\s*(\.[\w-]+\s*\{|body\s*\{|@media|@import|color\s*:|padding\s*:|margin\s*:)', sample, re.M):
+        return 'css'
+    # JavaScript
+    if re.search(r'^\s*(function|const|let|var)\s+\w+|console\.|document\.|window\.|=>|import\s+.*from|export\s+default', sample, re.M):
+        return 'javascript'
+    # C/C++
+    if re.search(r'^\s*#include\s+|int\s+main\s*\(|cout\s*<<|printf\s*\(|std::', sample, re.M):
+        return 'cpp'
+    # Java
+    if re.search(r'^\s*public\s+class\s+|private\s+|protected\s+|System\.out\.println|import\s+java\.', sample, re.M):
+        return 'java'
+    # Go
+    if re.search(r'^\s*package\s+main|import\s+\(|func\s+\w+\(|fmt\.Println|go\s+func', sample, re.M):
+        return 'go'
+    # Rust
+    if re.search(r'^\s*fn\s+main|let\s+\w+:|println!|use\s+std::|impl\s+', sample, re.M):
+        return 'rust'
+    # SQL
+    if re.search(r'^\s*SELECT\s+|INSERT\s+|UPDATE\s+|DELETE\s+|CREATE\s+TABLE|FROM\s+\w+\s+WHERE', sample, re.I | re.M):
+        return 'sql'
+    # YAML
+    if re.search(r'^\s*---\s*$|^\s*\w+:\s', sample, re.M):
+        return 'yaml'
+    # Bash
+    if re.search(r'^\s*#!/bin/(bash|sh)|^\s*echo\s|^\s*cd\s|^\s*mkdir\s|^\s*git\s', sample, re.M):
+        return 'bash'
+    # Markdown（特征宽泛，放最后避免误匹配代码）
+    md_patterns = [
+        r'^#{1,6}\s', r'^\s*[-*+]\s', r'^\s*\d+\.\s', r'^\s*```',
+        r'\|.*\|', r'!?\[.+\]\(.+\)', r'^\s*>\s', r'^\s*---\s*$', r'\*\*|__'
+    ]
+    if any(re.search(p, sample, re.M) for p in md_patterns):
+        return 'markdown'
+    return 'plaintext'
+
+def get_file_extension(text, key):
+    """根据内容自动获取文件扩展名，返回完整文件名"""
+    lang = detect_code_lang(text)
+    ext_map = {
+        'python': 'py', 'javascript': 'js', 'json': 'json', 'html': 'html',
+        'css': 'css', 'java': 'java', 'cpp': 'cpp', 'bash': 'sh',
+        'sql': 'sql', 'yaml': 'yaml', 'go': 'go', 'rust': 'rs',
+        'markdown': 'md', 'plaintext': 'txt'
+    }
+    ext = ext_map.get(lang, 'txt')
+    # 如果 key 已经有扩展名，保留它
+    if re.search(r'\.[a-zA-Z0-9]+$', key):
+        return key
+    return f"{key}.{ext}"
 
 # 首页模板（简化版）
 HOME_TEMPLATE = """<!DOCTYPE html>
@@ -314,6 +428,9 @@ footer {
         </div>
         <div id="tab-text" class="tab-content active">
             <textarea id="content" placeholder="在此输入或粘贴文本内容..."></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:10px;">
+                <button class="btn-copy" onclick="downloadHomeText()" style="padding:8px 16px;font-size:0.9rem;font-weight:500;cursor:pointer;border:none;border-radius:8px;background:#f1f5f9;color:#334155;">⬇️ 下载</button>
+            </div>
         </div>
         <div id="tab-file" class="tab-content">
             <div class="upload-zone" onclick="document.getElementById('file-input').click()">
@@ -538,6 +655,63 @@ function copyUrl() {
         btn.textContent = '✅ 已复制';
         setTimeout(() => btn.textContent = '📋 复制', 1500);
     });
+}
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:8px;font-size:0.9rem;z-index:100;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2000);
+}
+function isMarkdownLike(text) {
+    if (!text) return false;
+    const mdPatterns = [
+        /^#{1,6}\s/m, /^\s*[-*+]\s/m, /^\s*\d+\.\s/m,
+        /^\s*```/m, /\|.*\|/, /!?\[.+\]\(.+\)/,
+        /^\s*>\s/m, /^\s*---\s*$/m, /\*\*|__/
+    ];
+    return mdPatterns.some(p => p.test(text));
+}
+function detectCodeLang(text) {
+    if (!text || text.trim().length === 0) return 'plaintext';
+    if (isMarkdownLike(text)) return 'markdown';
+    const sample = text.slice(0, 3000);
+    if (/^\s*<!DOCTYPE\s+html/i.test(sample) || (/^\s*<[a-zA-Z]+[\s>]/m.test(sample) && /<\//m.test(sample))) return 'html';
+    if (/^\s*(function|const|let|var)\s+\w+|console\.|document\.|window\.|=>|import\s+.*from|export\s+default/m.test(sample)) return 'javascript';
+    if (/^\s*import\s+\w+|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+.*:|print\s*\(|if\s+.*:\s*$|#.*python|#!/usr/bin/env python/m.test(sample)) return 'python';
+    if (/^\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*$/m.test(sample) && /"[\w]+"\s*:/m.test(sample)) return 'json';
+    if (/^\s*(\.[\w-]+\s*\{|body\s*\{|@media|@import|color\s*:|padding\s*:|margin\s*:)/m.test(sample)) return 'css';
+    if (/^\s*#include\s+|int\s+main\s*\(|cout\s*<<|printf\s*\(|std::/m.test(sample)) return 'cpp';
+    if (/^\s*public\s+class\s+|private\s+|protected\s+|System\.out\.println|import\s+java\./m.test(sample)) return 'java';
+    if (/^\s*package\s+main|import\s+\(|func\s+\w+\(|fmt\.Println|go\s+func/m.test(sample)) return 'go';
+    if (/^\s*fn\s+main|let\s+\w+:|println!|use\s+std::|impl\s+/m.test(sample)) return 'rust';
+    if (/^\s*SELECT\s+|INSERT\s+|UPDATE\s+|DELETE\s+|CREATE\s+TABLE|FROM\s+\w+\s+WHERE/mi.test(sample)) return 'sql';
+    if (/^\s*---\s*$|^\s*\w+:\s/m.test(sample)) return 'yaml';
+    if (/^\s*#!/bin/(bash|sh)|^\s*echo\s|^\s*cd\s|^\s*mkdir\s|^\s*git\s/m.test(sample)) return 'bash';
+    return 'plaintext';
+}
+function downloadHomeText() {
+    var content = document.getElementById('content').value;
+    if (!content.trim()) { showToast('内容为空'); return; }
+    var detected = detectCodeLang(content);
+    var extMap = {
+        'python': 'py', 'javascript': 'js', 'json': 'json', 'html': 'html',
+        'css': 'css', 'java': 'java', 'cpp': 'cpp', 'bash': 'sh',
+        'sql': 'sql', 'yaml': 'yaml', 'go': 'go', 'rust': 'rs',
+        'markdown': 'md', 'plaintext': 'txt'
+    };
+    var ext = extMap[detected] || 'txt';
+    var filename = 'download.' + ext;
+    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ 已下载 ' + filename);
 }
 </script>
 </body>
@@ -819,6 +993,7 @@ a { text-decoration: none; color: inherit; }
                     <button class="btn-copy" id="btnPreview" onclick="switchMode('preview')">👁 预览</button>
                     <button class="btn-copy" id="btnEdit" onclick="switchMode('edit')">📝 编辑</button>
                     <button class="btn-copy" onclick="copyAll()">📋 复制</button>
+                    <button class="btn-copy" onclick="downloadText()">⬇️ 下载</button>
                     <button class="btn-save" onclick="saveEdit()">💾 保存</button>
                     {% endif %}
                 </div>
@@ -895,6 +1070,38 @@ function copyAll(){
     var content=document.getElementById('editContent').value;
     navigator.clipboard.writeText(content).then(()=>showToast('✅ 已复制')).catch(()=>showToast('复制失败'))
 }
+function downloadText(){
+    var content=document.getElementById('editContent').value;
+    var filename='{{ title }}';
+    var lang=document.getElementById('langSelect').value;
+    var detected=lang==='auto'?detectCodeLang(content):lang;
+    var extMap={
+        'python':'py','javascript':'js','json':'json','html':'html',
+        'css':'css','java':'java','cpp':'cpp','bash':'sh',
+        'sql':'sql','yaml':'yaml','go':'go','rust':'rs',
+        'markdown':'md','plaintext':'txt'
+    };
+    var ext=extMap[detected]||'txt';
+    var hasExt=filename.match(/\.[a-zA-Z0-9]+$/i);
+    if(hasExt){
+        var currentExt=hasExt[0].toLowerCase();
+        if(currentExt==='.txt'&&ext!=='txt'){
+            filename=filename.slice(0,-4)+'.'+ext;
+        }
+    }else{
+        filename+='.'+ext;
+    }
+    var blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ 已下载 '+filename);
+}
 function updateCharCount(){
     var c=document.getElementById('editContent').value.length;
     document.getElementById('charCount').textContent=c+' 字符';
@@ -916,20 +1123,37 @@ function isMarkdownLike(text) {
 }
 function detectCodeLang(text) {
     if (!text || text.trim().length === 0) return 'plaintext';
-    if (isMarkdownLike(text)) return 'markdown';
     const sample = text.slice(0, 3000);
+    // 优先检查 shebang
+    if (/^#!.*python/mi.test(sample)) return 'python';
+    if (/^#!.*node/mi.test(sample)) return 'javascript';
+    if (/^#!.*bash|^#!\/bin\/sh/mi.test(sample)) return 'bash';
+    // HTML
     if (/^\s*<!DOCTYPE\s+html/i.test(sample) || /^\s*<[a-zA-Z]+[\s>]/m.test(sample) && /<\//m.test(sample)) return 'html';
-    if (/^\s*(function|const|let|var)\s+\w+|console\.|document\.|window\.|=>|import\s+.*from|export\s+default/m.test(sample)) return 'javascript';
-    if (/^\s*import\s+\w+|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+.*:|print\s*\(|if\s+.*:\s*$|#.*python|#!\/usr\/bin\/env python/m.test(sample)) return 'python';
+    // Python（放在Markdown之前，避免#注释和__变量名被误判）
+    if (/^\s*import\s+\w+|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+.*:|print\s*\(|if\s+.*:\s*$/m.test(sample)) return 'python';
+    // JSON
     if (/^\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*$/m.test(sample) && /"[\w]+"\s*:/m.test(sample)) return 'json';
+    // CSS
     if (/^\s*(\.[\w-]+\s*\{|body\s*\{|@media|@import|color\s*:|padding\s*:|margin\s*:)/m.test(sample)) return 'css';
+    // JavaScript
+    if (/^\s*(function|const|let|var)\s+\w+|console\.|document\.|window\.|=>|import\s+.*from|export\s+default/m.test(sample)) return 'javascript';
+    // C/C++
     if (/^\s*#include\s+|int\s+main\s*\(|cout\s*<<|printf\s*\(|std::/m.test(sample)) return 'cpp';
+    // Java
     if (/^\s*public\s+class\s+|private\s+|protected\s+|System\.out\.println|import\s+java\./m.test(sample)) return 'java';
+    // Go
     if (/^\s*package\s+main|import\s+\(|func\s+\w+\(|fmt\.Println|go\s+func/m.test(sample)) return 'go';
+    // Rust
     if (/^\s*fn\s+main|let\s+\w+:|println!|use\s+std::|impl\s+/m.test(sample)) return 'rust';
+    // SQL
     if (/^\s*SELECT\s+|INSERT\s+|UPDATE\s+|DELETE\s+|CREATE\s+TABLE|FROM\s+\w+\s+WHERE/mi.test(sample)) return 'sql';
+    // YAML
     if (/^\s*---\s*$|^\s*\w+:\s/m.test(sample)) return 'yaml';
-    if (/^\s*#\!\/bin\/(bash|sh)|^\s*echo\s|^\s*cd\s|^\s*mkdir\s|^\s*git\s/m.test(sample)) return 'bash';
+    // Bash
+    if (/^\s*#!\/bin\/(bash|sh)|^\s*echo\s|^\s*cd\s|^\s*mkdir\s|^\s*git\s/m.test(sample)) return 'bash';
+    // Markdown（特征宽泛，放最后避免误匹配代码）
+    if (isMarkdownLike(text)) return 'markdown';
     return 'plaintext';
 }
 function onLangChange() {
@@ -1207,6 +1431,8 @@ def view_item(key):
         return render_template_string(VIEW_TEMPLATE, not_found=True)
     expires_at = row[7]
     if expires_at and datetime.now() > datetime.fromisoformat(expires_at):
+        # 过期后自动删除记录和文件
+        delete_item_by_key(key)
         return render_template_string(VIEW_TEMPLATE, expired=True)
     password_hash = row[6]
     if password_hash:
@@ -1245,14 +1471,32 @@ def view_item(key):
 def download_file(key):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT * FROM items WHERE key=? AND type='file'", (key,))
+    c.execute("SELECT * FROM items WHERE key=?", (key,))
     row = c.fetchone()
     conn.close()
-    if not row or not os.path.exists(row[5]):
+    if not row:
         abort(404)
     if row[7] and datetime.now() > datetime.fromisoformat(row[7]):
+        delete_item_by_key(key)
         abort(410)
-    return send_file(row[5], as_attachment=True, download_name=row[4])
+    item_type = row[2]
+    filename = row[4] or key
+    file_path = row[5]
+    if item_type == 'file':
+        if not file_path or not os.path.exists(file_path):
+            abort(404)
+        return send_file(file_path, as_attachment=True, download_name=filename)
+    else:
+        # 文本类型：根据内容自动检测语言并设置扩展名
+        content = row[3] or ''
+        filename = get_file_extension(content, key)
+        return send_file(io.BytesIO(content.encode('utf-8')), as_attachment=True, download_name=filename, mimetype='text/plain; charset=utf-8')
+
+@app.route('/api/cleanup', methods=['POST'])
+def api_cleanup():
+    """手动触发清理过期文件"""
+    count = cleanup_expired_items()
+    return jsonify({'success': True, 'deleted': count})
 
 if __name__ == '__main__':
     init_db()
