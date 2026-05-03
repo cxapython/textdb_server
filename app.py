@@ -678,7 +678,7 @@ function detectCodeLang(text) {
     const sample = text.slice(0, 3000);
     if (/^\s*<!DOCTYPE\s+html/i.test(sample) || (/^\s*<[a-zA-Z]+[\s>]/m.test(sample) && /<\//m.test(sample))) return 'html';
     if (/^\s*(function|const|let|var)\s+\w+|console\.|document\.|window\.|=>|import\s+.*from|export\s+default/m.test(sample)) return 'javascript';
-    if (/^\s*import\s+\w+|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+.*:|print\s*\(|if\s+.*:\s*$|#.*python|#!/usr/bin/env python/m.test(sample)) return 'python';
+    if (/^\s*import\s+\w+|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+.*:|print\s*\(|if\s+.*:\s*$|#.*python|#!\\/usr\\/bin\\/env python/m.test(sample)) return 'python';
     if (/^\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*$/m.test(sample) && /"[\w]+"\s*:/m.test(sample)) return 'json';
     if (/^\s*(\.[\w-]+\s*\{|body\s*\{|@media|@import|color\s*:|padding\s*:|margin\s*:)/m.test(sample)) return 'css';
     if (/^\s*#include\s+|int\s+main\s*\(|cout\s*<<|printf\s*\(|std::/m.test(sample)) return 'cpp';
@@ -687,7 +687,7 @@ function detectCodeLang(text) {
     if (/^\s*fn\s+main|let\s+\w+:|println!|use\s+std::|impl\s+/m.test(sample)) return 'rust';
     if (/^\s*SELECT\s+|INSERT\s+|UPDATE\s+|DELETE\s+|CREATE\s+TABLE|FROM\s+\w+\s+WHERE/mi.test(sample)) return 'sql';
     if (/^\s*---\s*$|^\s*\w+:\s/m.test(sample)) return 'yaml';
-    if (/^\s*#!/bin/(bash|sh)|^\s*echo\s|^\s*cd\s|^\s*mkdir\s|^\s*git\s/m.test(sample)) return 'bash';
+    if (/^\\s*#!\\/bin\\/(bash|sh)|^\\s*echo\\s|^\\s*cd\\s|^\\s*mkdir\\s|^\\s*git\\s/m.test(sample)) return 'bash';
     return 'plaintext';
 }
 function downloadHomeText() {
@@ -1151,7 +1151,7 @@ function detectCodeLang(text) {
     // YAML
     if (/^\s*---\s*$|^\s*\w+:\s/m.test(sample)) return 'yaml';
     // Bash
-    if (/^\s*#!\/bin\/(bash|sh)|^\s*echo\s|^\s*cd\s|^\s*mkdir\s|^\s*git\s/m.test(sample)) return 'bash';
+    if (/^\\s*#!\\/bin\\/(bash|sh)|^\\s*echo\\s|^\\s*cd\\s|^\\s*mkdir\\s|^\\s*git\\s/m.test(sample)) return 'bash';
     // Markdown（特征宽泛，放最后避免误匹配代码）
     if (isMarkdownLike(text)) return 'markdown';
     return 'plaintext';
