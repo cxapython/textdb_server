@@ -53,21 +53,142 @@ http://localhost:80
 
 ## 📡 API 接口
 
-### 保存文本
+### 方式一：直接通过路径创建（推荐）
+
+访问不存在的路径时，会自动显示创建页面；通过 POST 请求可直接创建内容。
+
+**接口**: `POST /{key}`
+
+**请求头**: `Content-Type: application/json`
+
+**请求体**:
+```json
+{
+  "content": "要保存的文本内容",
+  "key": "new_address",
+  "ttl": "1d",
+  "password": "可选的访问密码"
+}
+```
+
+**参数说明**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| content | string | 是 | 文本内容 |
+| key | string | 是 | 链接地址（与URL中的key一致）|
+| ttl | string | 否 | 过期时间：空=永不过期, 1h, 1d, 7d, 30d |
+| password | string | 否 | 访问密码，不设则公开访问 |
+
+#### Curl 示例
+
+**基础创建（最简单）**:
+```bash
+curl -X POST http://150.158.96.110/new_address \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Hello World","key":"new_address"}'
+```
+
+**带过期时间（1天）**:
+```bash
+curl -X POST http://150.158.96.110/new_address \
+  -H "Content-Type: application/json" \
+  -d '{"content":"这是一天有效期的内容","key":"new_address","ttl":"1d"}'
+```
+
+**带密码保护**:
+```bash
+curl -X POST http://150.158.96.110/new_address \
+  -H "Content-Type: application/json" \
+  -d '{"content":"机密内容","key":"new_address","password":"123456"}'
+```
+
+**从文件读取内容**:
+```bash
+curl -X POST http://150.158.96.110/new_address \
+  -H "Content-Type: application/json" \
+  -d "{\"content\":\"$(cat myfile.txt | sed 's/"/\\"/g')\",\"key\":\"new_address\"}"
+```
+
+**保存代码/配置文件**:
+```bash
+curl -X POST http://150.158.96.110/nginx_config \
+  -H "Content-Type: application/json" \
+  -d '{"content":"server {\n    listen 80;\n    server_name example.com;\n}","key":"nginx_config","ttl":"7d"}'
+```
+
+#### Python 示例
+
+```python
+import requests
+
+url = "http://150.158.96.110/new_address"
+data = {
+    "content": "这是从Python发送的内容",
+    "key": "new_address",
+    "ttl": "1d",  # 可选
+    "password": ""  # 可选
+}
+
+response = requests.post(url, json=data)
+result = response.json()
+
+if result["success"]:
+    print(f"创建成功: {result['url']}")
+else:
+    print(f"失败: {result.get('error')}")
+```
+
+#### JavaScript/Fetch 示例
+
+```javascript
+fetch('http://150.158.96.110/new_address', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    content: '这是JS发送的内容',
+    key: 'new_address',
+    ttl: '7d'
+  })
+})
+.then(r => r.json())
+.then(data => {
+  if (data.success) {
+    console.log('创建成功:', data.url);
+  }
+});
+```
+
+**返回格式**:
+```json
+// 成功
+{
+  "success": true,
+  "key": "new_address",
+  "url": "http://150.158.96.110/new_address"
+}
+
+// 失败
+{
+  "success": false,
+  "error": "内容不能为空"
+}
+```
+
+---
+
+### 方式二：传统 API 创建
+
+**接口**: `POST /api/save`
+
 ```bash
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"content":"文本内容","key":"自定义链接","password":"密码","expires":"7d"}' \
+  -d '{"content":"文本内容","key":"自定义链接","password": "***","expires":"7d"}' \
   http://localhost/api/save
 ```
 
-### 上传文件
-```bash
-curl -X POST -F "file=@document.pdf" \
-  -F "key=自定义链接" -F "password=密码" -F "expires=30d" \
-  http://localhost/api/upload
-```
-
-### 响应格式
+**响应格式**:
 ```json
 {
   "success": true,
@@ -76,6 +197,32 @@ curl -X POST -F "file=@document.pdf" \
   "has_password": true,
   "qr_code": "data:image/png;base64,..."
 }
+```
+
+---
+
+### 上传文件
+
+**接口**: `POST /api/upload`
+
+```bash
+curl -X POST -F "file=@document.pdf" \
+  -F "key=自定义链接" -F "password=密码" -F "expires=30d" \
+  http://localhost/api/upload
+```
+
+---
+
+### 检查 key 是否存在
+
+```bash
+curl http://150.158.96.110/api/check/new_address
+```
+
+**返回**:
+```json
+{"exists": false, "key": "new_address"}  // 不存在
+{"exists": true, "key": "new_address"}   // 已存在
 ```
 
 ## 📁 项目结构
@@ -127,6 +274,12 @@ export PORT=8080
 - ✅ 微信内置浏览器
 
 ## 📝 更新日志
+
+### v1.2.0 (2026-05-04)
+- ✨ 新增智能创建页面：访问不存在的链接时自动显示创建界面
+- ✨ 支持通过 `POST /{key}` 直接创建内容，方便第三方应用集成
+- ✨ 新增 `/api/check/{key}` 接口检查链接是否存在
+- 📚 完善 API 文档，增加 Python/JavaScript/Curl 示例
 
 ### v1.1.0 (2026-04-15)
 - ✨ 代码查看页新增语言模式检测与智能切换

@@ -1301,6 +1301,334 @@ document.addEventListener('DOMContentLoaded', function() {
 </body>
 </html>"""
 
+# 创建新内容模板（当访问不存在的 key 时显示）
+CREATE_TEMPLATE = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>创建 {{ key }} - TextDB</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f8fafc;
+    color: #334155;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+a { text-decoration: none; color: inherit; }
+.nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #e2e8f0;
+}
+.nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.nav-logo { font-size: 1.3rem; font-weight: 700; color: #3b82f6; display: flex; align-items: center; gap: 8px; }
+.nav-back {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+.nav-back:hover { background: #f1f5f9; color: #3b82f6; }
+.main { flex: 1; display: flex; flex-direction: column; }
+.container { max-width: 900px; margin: 0 auto; padding: 24px 20px; width: 100%; }
+.card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+.editor-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #fafafa;
+}
+.editor-title { font-size: 1rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+.editor-meta { font-size: 0.85rem; color: #94a3b8; }
+.editor-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.editor-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-save { background: #3b82f6; color: #fff; }
+.btn-save:hover { background: #2563eb; }
+.btn-copy { background: #f1f5f9; color: #334155; }
+.btn-copy:hover { background: #e2e8f0; }
+.editor-area {
+    padding: 20px;
+    min-height: calc(100vh - 280px);
+}
+.editor-area textarea {
+    width: 100%;
+    min-height: 50vh;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-family: "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    resize: vertical;
+    outline: none;
+    background: #fafafa;
+    color: #1e293b;
+}
+.editor-area textarea:focus { border-color: #3b82f6; background: #fff; }
+.options-row {
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.option { flex: 1; min-width: 200px; }
+.option label {
+    display: block;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+.option input, .option select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    background: #fff;
+}
+.option input:focus, .option select:focus { border-color: #3b82f6; }
+.notice {
+    text-align: center;
+    padding: 12px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+}
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 100;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.result {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+}
+.result.show { display: block; }
+.result-url {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+.result-url input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: #fff;
+}
+.result-url button {
+    padding: 10px 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+.result-url button:hover { border-color: #3b82f6; color: #3b82f6; }
+.qr-img { max-width: 160px; margin-top: 12px; border-radius: 8px; }
+@media (max-width: 640px) {
+    .editor-header { padding: 12px 16px; }
+    .editor-area { padding: 12px; min-height: calc(100vh - 240px); }
+    .editor-area textarea { min-height: 40vh; font-size: 15px; }
+    .options-row { padding: 12px 16px; }
+    .option { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">📋 TextDB</a>
+        <a href="/" class="nav-back">← 返回首页</a>
+    </div>
+</nav>
+<div class="main">
+    <div class="container">
+        <div class="card">
+            <div class="editor-header">
+                <div>
+                    <div class="editor-title">📝 创建新内容</div>
+                    <div class="editor-meta">链接地址: /{{ key }}</div>
+                </div>
+                <div class="editor-actions">
+                    <button class="btn-save" onclick="saveContent()">💾 保存内容</button>
+                </div>
+            </div>
+            <div class="editor-area">
+                <textarea id="editContent" placeholder="在此输入内容..."></textarea>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+                    <span id="charCount" style="font-size:0.85rem;color:#94a3b8;">0 字符</span>
+                    <span id="editResult" style="font-size:0.9rem;display:none;"></span>
+                </div>
+            </div>
+            <div class="options-row">
+                <div class="option">
+                    <label>⏱ 过期时间</label>
+                    <select id="ttl">
+                        <option value="">永不过期</option>
+                        <option value="1h">1 小时</option>
+                        <option value="1d">1 天</option>
+                        <option value="7d">7 天</option>
+                        <option value="30d">30 天</option>
+                    </select>
+                </div>
+                <div class="option">
+                    <label>🔑 访问密码（可选）</label>
+                    <input type="password" id="password" placeholder="不设密码直接访问">
+                </div>
+            </div>
+            <div class="result" id="result">
+                <div style="color:#16a34a;font-weight:600;margin-bottom:4px;">✅ 创建成功！</div>
+                <div class="result-url">
+                    <input id="resultUrl" readonly>
+                    <button onclick="copyUrl()">📋 复制</button>
+                </div>
+                <div id="resultExtra" style="margin-top:8px;font-size:0.85rem;color:#64748b;"></div>
+                <div style="text-align:center;">
+                    <img id="qrImg" class="qr-img" src="" alt="二维码">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="notice">
+    TextDB · 安全可靠的在线分享工具
+</div>
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+function updateCharCount() {
+    const c = document.getElementById('editContent').value.length;
+    document.getElementById('charCount').textContent = c + ' 字符';
+}
+document.getElementById('editContent').addEventListener('input', updateCharCount);
+function saveContent() {
+    const content = document.getElementById('editContent').value.trim();
+    if (!content) {
+        showToast('❌ 内容不能为空');
+        return;
+    }
+    const ttl = document.getElementById('ttl').value;
+    const password = document.getElementById('password').value;
+    const btn = document.querySelector('.btn-save');
+    const oldText = btn.textContent;
+    btn.textContent = '⏳ 保存中...';
+    btn.disabled = true;
+    
+    fetch('/{{ key }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            content: content,
+            key: '{{ key }}',
+            ttl: ttl,
+            password: password
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.textContent = oldText;
+        btn.disabled = false;
+        if (data.success) {
+            showToast('✅ 保存成功');
+            document.getElementById('resultUrl').value = data.url;
+            document.getElementById('result').classList.add('show');
+            let extra = '';
+            if (ttl) {
+                const ttlText = document.getElementById('ttl').options[document.getElementById('ttl').selectedIndex].text;
+                extra += '⏱ 过期时间: ' + ttlText;
+            }
+            if (password) extra += ' 🔒 已设置密码保护';
+            document.getElementById('resultExtra').textContent = extra;
+            // 生成二维码
+            const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(data.url);
+            document.getElementById('qrImg').src = qrUrl;
+        } else {
+            showToast('❌ ' + (data.error || '保存失败'));
+        }
+    })
+    .catch(() => {
+        btn.textContent = oldText;
+        btn.disabled = false;
+        showToast('❌ 网络错误');
+    });
+}
+function copyUrl() {
+    const input = document.getElementById('resultUrl');
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = document.querySelector('.result-url button');
+        btn.textContent = '✅ 已复制';
+        setTimeout(() => btn.textContent = '📋 复制', 1500);
+    });
+}
+</script>
+</body>
+</html>"""
+
 @app.after_request
 def add_header(response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -1428,7 +1756,61 @@ def view_item(key):
     row = c.fetchone()
     conn.close()
     if not row:
-        return render_template_string(VIEW_TEMPLATE, not_found=True)
+        # Key 不存在，显示创建页面
+        if request.method == 'POST':
+            # 处理创建请求
+            data = request.get_json()
+            content = data.get('content', '').strip()
+            ttl = data.get('ttl', '')
+            password = data.get('password', '')
+            custom_key = data.get('key', key).strip()
+            overwrite = data.get('overwrite', False)
+            
+            if not content:
+                return jsonify({'success': False, 'error': '内容不能为空'})
+            
+            # 检查 key 是否已存在（如果不是覆盖模式）
+            if not overwrite:
+                conn = sqlite3.connect(DB_PATH)
+                c = conn.cursor()
+                c.execute("SELECT key FROM items WHERE key=?", (custom_key,))
+                if c.fetchone():
+                    conn.close()
+                    return jsonify({'success': False, 'error': '该链接已被使用，请更换自定义链接'})
+                conn.close()
+            
+            # 计算过期时间
+            expires_at = None
+            if ttl:
+                now = datetime.now()
+                if ttl == '1h':
+                    expires_at = (now + timedelta(hours=1)).isoformat()
+                elif ttl == '1d':
+                    expires_at = (now + timedelta(days=1)).isoformat()
+                elif ttl == '7d':
+                    expires_at = (now + timedelta(days=7)).isoformat()
+                elif ttl == '30d':
+                    expires_at = (now + timedelta(days=30)).isoformat()
+            
+            # 保存到数据库
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
+            if overwrite:
+                c.execute('''INSERT OR REPLACE INTO items (key, type, content, password_hash, expires_at)
+                             VALUES (?, 'text', ?, ?, ?)''',
+                          (custom_key, content, hash_password(password) if password else None, expires_at))
+            else:
+                c.execute('''INSERT INTO items (key, type, content, password_hash, expires_at)
+                             VALUES (?, 'text', ?, ?, ?)''',
+                          (custom_key, content, hash_password(password) if password else None, expires_at))
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'key': custom_key, 'url': f'http://{request.host}/{custom_key}'})
+        
+        # GET 请求：显示创建页面
+        return render_template_string(CREATE_TEMPLATE, key=key)
+    
     expires_at = row[7]
     if expires_at and datetime.now() > datetime.fromisoformat(expires_at):
         # 过期后自动删除记录和文件
